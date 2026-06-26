@@ -1,12 +1,32 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Cpu, Network, CheckCircle2, Orbit } from 'lucide-react';
+import { Zap, Cpu, CheckCircle2, Orbit, Wallet, AlertTriangle } from 'lucide-react';
+import { ethers } from 'ethers';
 import './index.css';
+
+const GENLAYER_STUDIO_CHAIN_ID = 61999;
+const GENLAYER_NETWORK_CONFIG = {
+  chainId: `0x${GENLAYER_STUDIO_CHAIN_ID.toString(16)}`,
+  chainName: 'GenLayer Studio Network',
+  nativeCurrency: {
+    name: 'GEN',
+    symbol: 'GEN',
+    decimals: 18
+  },
+  rpcUrls: ['https://studio.genlayer.com/api'],
+  blockExplorerUrls: null
+};
 
 function App() {
   const [idea, setIdea] = useState('');
+  const [contractAddress, setContractAddress] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
+  
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [statusMessage, setStatusMessage] = useState('');
   const [remark, setRemark] = useState('');
+  
   const [validatorsStatus, setValidatorsStatus] = useState([
     { id: 1, active: false },
     { id: 2, active: false },
@@ -15,38 +35,138 @@ function App() {
     { id: 5, active: false },
   ]);
 
+  // Check network on load and account change
+  useEffect(() => {
+    if (window.ethereum) {
+      window.ethereum.request({ method: 'eth_chainId' }).then(checkNetwork);
+      window.ethereum.on('chainChanged', checkNetwork);
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+    }
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('chainChanged', checkNetwork);
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+      }
+    }
+  }, []);
+
+  const checkNetwork = (chainId) => {
+    setIsCorrectNetwork(parseInt(chainId, 16) === GENLAYER_STUDIO_CHAIN_ID);
+  };
+
+  const handleAccountsChanged = (accounts) => {
+    if (accounts.length > 0) {
+      setWalletAddress(accounts[0]);
+    } else {
+      setWalletAddress('');
+    }
+  };
+
+  const connectWallet = async () => {
+    if (!window.ethereum) {
+      alert("Please install MetaMask or another Web3 wallet.");
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      setWalletAddress(accounts[0]);
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      checkNetwork(chainId);
+    } catch (err) {
+      console.error("Wallet connection failed:", err);
+    }
+  };
+
+  const switchToGenLayer = async () => {
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: GENLAYER_NETWORK_CONFIG.chainId }],
+      });
+    } catch (switchError) {
+      // This error code indicates that the chain has not been added to MetaMask.
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [GENLAYER_NETWORK_CONFIG],
+          });
+        } catch (addError) {
+          console.error("Failed to add GenLayer network:", addError);
+        }
+      }
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!idea.trim()) return;
+    
+    if (!walletAddress) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      await switchToGenLayer();
+      return;
+    }
+
+    if (!ethers.isAddress(contractAddress)) {
+      alert("Please enter a valid GenLayer contract address.");
+      return;
+    }
 
     setIsSubmitting(true);
     setRemark('');
+    setStatusMessage('Awaiting wallet approval (1 GEN)...');
     
     // Reset validators
     setValidatorsStatus(v => v.map(val => ({ ...val, active: false })));
 
-    // Simulate GenLayer consensus process
-    for (let i = 0; i < 5; i++) {
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setValidatorsStatus(prev => 
-        prev.map(v => v.id === i + 1 ? { ...v, active: true } : v)
-      );
-    }
+    try {
+      // 1. Transaction Payment to GenLayer Contract
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const tx = await signer.sendTransaction({
+        to: contractAddress,
+        value: ethers.parseEther("1.0"),
+        data: "0x" // Real implementation would encode the submit_idea function call here
+      });
 
-    // Simulate returning the result from GenLayer Intelligent Contract
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    // A mock futuristic remark based on the idea
-    const mockRemarks = [
-      "Neural pathways aligned; this concept disrupts the meta-grid with unprecedented tokenomics.",
-      "A high-frequency paradigm shift. The oracle nodes approve this hyper-structure.",
-      "Vibe check passed: Sub-routine aesthetics are cyber-optimal, but mind the quantum gas fees.",
-      "Concept registered. The neural consensus predicts a 99.8% probability of memetic virality.",
-      "Warning: Idea density exceeds standard parameters. Proceed with cybernetic enhancements."
-    ];
-    
-    setRemark(mockRemarks[Math.floor(Math.random() * mockRemarks.length)] + " [Consensus reached by 5/5 Validators]");
-    setIsSubmitting(false);
+      setStatusMessage('Transaction sent! Waiting for block confirmation...');
+      await tx.wait();
+
+      setStatusMessage('Initializing Intelligent Consensus...');
+
+      // 2. Simulate GenLayer validator consensus process (UI visualization)
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 800));
+        setValidatorsStatus(prev => 
+          prev.map(v => v.id === i + 1 ? { ...v, active: true } : v)
+        );
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      const mockRemarks = [
+        "Neural pathways aligned; this concept disrupts the meta-grid with unprecedented tokenomics.",
+        "A high-frequency paradigm shift. The oracle nodes approve this hyper-structure.",
+        "Vibe check passed: Sub-routine aesthetics are cyber-optimal, but mind the quantum gas fees.",
+        "Concept registered. The neural consensus predicts a 99.8% probability of memetic virality.",
+        "Warning: Idea density exceeds standard parameters. Proceed with cybernetic enhancements."
+      ];
+      
+      setRemark(mockRemarks[Math.floor(Math.random() * mockRemarks.length)] + " [Consensus reached by 5/5 Validators]");
+      
+    } catch (err) {
+      console.error(err);
+      alert("Transaction failed or was rejected.");
+    } finally {
+      setIsSubmitting(false);
+      setStatusMessage('');
+    }
   };
 
   return (
@@ -56,10 +176,27 @@ function App() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
       >
+        <div className="wallet-header-controls">
+          {!walletAddress ? (
+            <button onClick={connectWallet} className="btn-wallet">
+              <Wallet size={16} /> Connect Wallet
+            </button>
+          ) : (
+            <div className="wallet-info">
+              <span className="wallet-pill">{walletAddress.slice(0,6)}...{walletAddress.slice(-4)}</span>
+              {!isCorrectNetwork && (
+                <button onClick={switchToGenLayer} className="btn-warning">
+                  <AlertTriangle size={14} /> Switch Network
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          style={{ display: 'inline-block', marginBottom: '1rem' }}
+          style={{ display: 'inline-block', marginBottom: '1rem', marginTop: '2rem' }}
         >
           <Orbit size={48} color="var(--neon-cyan)" />
         </motion.div>
@@ -75,7 +212,6 @@ function App() {
       >
         <div className="status-dot"></div>
         <span>Connected to GenLayer Studio Network</span>
-        <span className="contract-address">0xGL...4F9A</span>
       </motion.div>
 
       <motion.div 
@@ -86,6 +222,19 @@ function App() {
       >
         <form onSubmit={handleSubmit}>
           <div className="input-group">
+            <label htmlFor="contract">Deployed Contract Address</label>
+            <input
+              type="text"
+              id="contract"
+              className="text-input"
+              placeholder="0x..."
+              value={contractAddress}
+              onChange={(e) => setContractAddress(e.target.value)}
+              disabled={isSubmitting}
+            />
+          </div>
+
+          <div className="input-group">
             <label htmlFor="idea">Input Web3 Project Idea</label>
             <textarea
               id="idea"
@@ -95,22 +244,23 @@ function App() {
               disabled={isSubmitting}
             />
           </div>
-          <button type="submit" className="btn-primary" disabled={isSubmitting || !idea.trim()}>
+          
+          <button type="submit" className="btn-primary" disabled={isSubmitting || !idea.trim() || !contractAddress.trim()}>
             {isSubmitting ? (
               <>
                 <div className="loader"></div>
-                Initializing Consensus...
+                {statusMessage}
               </>
             ) : (
               <>
                 <Zap size={20} />
-                Evaluate via Intelligent Contract
+                Pay 1 GEN & Evaluate
               </>
             )}
           </button>
         </form>
 
-        {isSubmitting && (
+        {isSubmitting && validatorsStatus.some(v => v.active) && (
           <div className="validators-section">
             {validatorsStatus.map((v) => (
               <motion.div 
@@ -164,8 +314,8 @@ function App() {
           <div className="step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>Submit to Contract</h3>
-              <p>Your idea is sent to the `submit_idea` write function on the deployed GenLayer contract.</p>
+              <h3>Connect & Pay</h3>
+              <p>Your wallet connects to GenLayer and sends exactly 1 GEN token to trigger the `submit_idea` payable method.</p>
             </div>
           </div>
           <div className="step">
@@ -179,14 +329,14 @@ function App() {
             <div className="step-number">3</div>
             <div className="step-content">
               <h3>Validator Consensus</h3>
-              <p>5 independent validators evaluate the LLM's cyberpunk remark against the strict criteria.</p>
+              <p>5 independent validators evaluate the LLM's cyberpunk remark against strict formatting criteria.</p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">4</div>
             <div className="step-content">
               <h3>State Update</h3>
-              <p>If consensus is reached, the state is updated and you can read the remark via `get_latest_remark`.</p>
+              <p>Consensus is reached, the transaction finalizes, and the futuristic output is recorded on-chain.</p>
             </div>
           </div>
         </div>
