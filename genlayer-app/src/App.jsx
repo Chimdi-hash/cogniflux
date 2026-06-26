@@ -19,7 +19,7 @@ const GENLAYER_NETWORK_CONFIG = {
 
 function App() {
   const [idea, setIdea] = useState('');
-  const [contractAddress, setContractAddress] = useState('');
+  const [contractAddress, setContractAddress] = useState('0x48fF68CBEA04C3d753695DB8520B7f6bba6eb095');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
