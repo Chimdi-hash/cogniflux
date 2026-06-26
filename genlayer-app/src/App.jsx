@@ -126,7 +126,8 @@ function App() {
       
       // 1. Send Transaction (Calls submit_idea on the GenLayer Contract)
       const tx = await contract.submit_idea(idea, {
-        value: ethers.parseEther("1.0")
+        value: ethers.parseEther("1.0"),
+        gasLimit: 10000000 // Skip ethers gas estimation for AI-native GenLayer
       });
 
       // 2. Wait for Consensus
