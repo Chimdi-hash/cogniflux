@@ -1,27 +1,31 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Orbit, Wallet, AlertTriangle, LogOut } from 'lucide-react';
-import { ethers } from 'ethers';
+import { createClient } from 'genlayer-js';
+import { parseAbi, parseEther } from 'viem';
 import './index.css';
 
-const GENLAYER_STUDIO_CHAIN_ID = 61999;
+// Using a custom chain config since we know the exact RPC for Studio
+const studioChain = {
+  id: 61999,
+  name: 'GenLayer Studio Network',
+  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
+  rpcUrls: { default: { http: ['https://studio.genlayer.com/api'] } },
+};
+
 const GENLAYER_NETWORK_CONFIG = {
-  chainId: `0x${GENLAYER_STUDIO_CHAIN_ID.toString(16)}`,
-  chainName: 'GenLayer Studio Network',
-  nativeCurrency: {
-    name: 'GEN',
-    symbol: 'GEN',
-    decimals: 18
-  },
-  rpcUrls: ['https://studio.genlayer.com/api'],
+  chainId: `0x${studioChain.id.toString(16)}`,
+  chainName: studioChain.name,
+  nativeCurrency: studioChain.nativeCurrency,
+  rpcUrls: studioChain.rpcUrls.default.http,
   blockExplorerUrls: null
 };
 
-// Minimal ABI for GenLayer interactions
-const CONTRACT_ABI = [
+// Use viem's parseAbi for type-safe ABI encoding required by genlayer-js
+const ABI = parseAbi([
   "function submit_idea(string idea) payable",
   "function get_latest_remark() view returns (string)"
-];
+]);
 
 function App() {
   const [idea, setIdea] = useState('');
@@ -49,7 +53,7 @@ function App() {
   }, []);
 
   const checkNetwork = (chainId) => {
-    setIsCorrectNetwork(parseInt(chainId, 16) === GENLAYER_STUDIO_CHAIN_ID);
+    setIsCorrectNetwork(parseInt(chainId, 16) === studioChain.id);
   };
 
   const handleAccountsChanged = (accounts) => {
@@ -119,30 +123,43 @@ function App() {
     setStatusMessage('Awaiting wallet approval (1 GEN)...');
 
     try {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      
-      const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer);
+      // Initialize the GenLayer SDK client for writing transactions
+      const writeClient = createClient({
+        chain: studioChain,
+        account: walletAddress,
+        provider: window.ethereum,
+      });
       
       // 1. Send Transaction (Calls submit_idea on the GenLayer Contract)
-      const tx = await contract.submit_idea(idea, {
-        value: ethers.parseEther("1.0"),
-        gasLimit: 10000000 // Skip ethers gas estimation for AI-native GenLayer
+      const txHash = await writeClient.writeContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'submit_idea',
+        args: [idea],
+        value: parseEther("1.0") // 1 GEN in wei
       });
 
       // 2. Wait for Consensus
       setStatusMessage('5 validators are running judgement............');
-      await tx.wait();
+      await writeClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        status: 'FINALIZED' // Wait for the AI consensus to reach finality
+      });
 
       // 3. Fetch Actual Result
       setStatusMessage('Fetching consensus result...');
-      const remarkResult = await contract.get_latest_remark();
+      
+      const remarkResult = await writeClient.readContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'get_latest_remark',
+      });
       
       setRemark(remarkResult);
       
     } catch (err) {
       console.error(err);
-      alert("Transaction failed or was rejected.");
+      alert("Transaction failed or was rejected. See console for details.");
     } finally {
       setIsSubmitting(false);
       setStatusMessage('');
