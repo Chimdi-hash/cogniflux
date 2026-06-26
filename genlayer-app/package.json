@@ -12,9 +12,11 @@
   "dependencies": {
     "ethers": "^6.17.0",
     "framer-motion": "^12.42.0",
+    "genlayer-js": "^1.1.8",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "viem": "^2.53.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",
