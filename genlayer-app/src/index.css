@@ -292,6 +292,39 @@ textarea:focus {
   font-size: 0.9rem;
 }
 
+.status-text {
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.blinking-text {
+  animation: blinker 1.5s linear infinite;
+  color: var(--neon-cyan);
+  font-weight: 600;
+  font-size: 1.1rem;
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+@keyframes blinker {
+  50% { opacity: 0; }
+}
+
+.disconnect-btn {
+  background: rgba(255, 0, 0, 0.1) !important;
+  border-color: rgba(255, 0, 0, 0.3) !important;
+  color: #ff4d4d !important;
+  padding: 0.4rem 0.6rem !important;
+}
+
+.disconnect-btn:hover {
+  background: rgba(255, 0, 0, 0.2) !important;
+  border-color: #ff4d4d !important;
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .app-container {

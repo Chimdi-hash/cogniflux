@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Cpu, CheckCircle2, Orbit, Wallet, AlertTriangle } from 'lucide-react';
+import { Zap, Orbit, Wallet, AlertTriangle, LogOut } from 'lucide-react';
 import { ethers } from 'ethers';
 import './index.css';
 
@@ -17,23 +17,21 @@ const GENLAYER_NETWORK_CONFIG = {
   blockExplorerUrls: null
 };
 
+// Minimal ABI for GenLayer interactions
+const CONTRACT_ABI = [
+  "function submit_idea(string idea) payable",
+  "function get_latest_remark() view returns (string)"
+];
+
 function App() {
   const [idea, setIdea] = useState('');
-  const [contractAddress, setContractAddress] = useState('0x48fF68CBEA04C3d753695DB8520B7f6bba6eb095');
+  const [contractAddress] = useState('0x48fF68CBEA04C3d753695DB8520B7f6bba6eb095');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
   const [remark, setRemark] = useState('');
-  
-  const [validatorsStatus, setValidatorsStatus] = useState([
-    { id: 1, active: false },
-    { id: 2, active: false },
-    { id: 3, active: false },
-    { id: 4, active: false },
-    { id: 5, active: false },
-  ]);
 
   // Check network on load and account change
   useEffect(() => {
@@ -77,6 +75,11 @@ function App() {
     }
   };
 
+  const disconnectWallet = () => {
+    setWalletAddress('');
+    setRemark('');
+  };
+
   const switchToGenLayer = async () => {
     try {
       await window.ethereum.request({
@@ -84,7 +87,6 @@ function App() {
         params: [{ chainId: GENLAYER_NETWORK_CONFIG.chainId }],
       });
     } catch (switchError) {
-      // This error code indicates that the chain has not been added to MetaMask.
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
@@ -112,53 +114,30 @@ function App() {
       return;
     }
 
-    if (!ethers.isAddress(contractAddress)) {
-      alert("Please enter a valid GenLayer contract address.");
-      return;
-    }
-
     setIsSubmitting(true);
     setRemark('');
     setStatusMessage('Awaiting wallet approval (1 GEN)...');
-    
-    // Reset validators
-    setValidatorsStatus(v => v.map(val => ({ ...val, active: false })));
 
     try {
-      // 1. Transaction Payment to GenLayer Contract
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
       
-      const tx = await signer.sendTransaction({
-        to: contractAddress,
-        value: ethers.parseEther("1.0"),
-        data: "0x" // Real implementation would encode the submit_idea function call here
+      const contract = new ethers.Contract(contractAddress, CONTRACT_ABI, signer);
+      
+      // 1. Send Transaction (Calls submit_idea on the GenLayer Contract)
+      const tx = await contract.submit_idea(idea, {
+        value: ethers.parseEther("1.0")
       });
 
-      setStatusMessage('Transaction sent! Waiting for block confirmation...');
+      // 2. Wait for Consensus
+      setStatusMessage('5 validators are running judgement............');
       await tx.wait();
 
-      setStatusMessage('Initializing Intelligent Consensus...');
-
-      // 2. Simulate GenLayer validator consensus process (UI visualization)
-      for (let i = 0; i < 5; i++) {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setValidatorsStatus(prev => 
-          prev.map(v => v.id === i + 1 ? { ...v, active: true } : v)
-        );
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 600));
+      // 3. Fetch Actual Result
+      setStatusMessage('Fetching consensus result...');
+      const remarkResult = await contract.get_latest_remark();
       
-      const mockRemarks = [
-        "Neural pathways aligned; this concept disrupts the meta-grid with unprecedented tokenomics.",
-        "A high-frequency paradigm shift. The oracle nodes approve this hyper-structure.",
-        "Vibe check passed: Sub-routine aesthetics are cyber-optimal, but mind the quantum gas fees.",
-        "Concept registered. The neural consensus predicts a 99.8% probability of memetic virality.",
-        "Warning: Idea density exceeds standard parameters. Proceed with cybernetic enhancements."
-      ];
-      
-      setRemark(mockRemarks[Math.floor(Math.random() * mockRemarks.length)] + " [Consensus reached by 5/5 Validators]");
+      setRemark(remarkResult);
       
     } catch (err) {
       console.error(err);
@@ -189,6 +168,9 @@ function App() {
                   <AlertTriangle size={14} /> Switch Network
                 </button>
               )}
+              <button onClick={disconnectWallet} className="btn-wallet disconnect-btn" title="Disconnect">
+                <LogOut size={14} />
+              </button>
             </div>
           )}
         </div>
@@ -222,19 +204,6 @@ function App() {
       >
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="contract">Deployed Contract Address</label>
-            <input
-              type="text"
-              id="contract"
-              className="text-input"
-              placeholder="0x..."
-              value={contractAddress}
-              onChange={(e) => setContractAddress(e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          <div className="input-group">
             <label htmlFor="idea">Input Web3 Project Idea</label>
             <textarea
               id="idea"
@@ -245,11 +214,11 @@ function App() {
             />
           </div>
           
-          <button type="submit" className="btn-primary" disabled={isSubmitting || !idea.trim() || !contractAddress.trim()}>
+          <button type="submit" className="btn-primary" disabled={isSubmitting || !idea.trim()}>
             {isSubmitting ? (
               <>
                 <div className="loader"></div>
-                {statusMessage}
+                Processing...
               </>
             ) : (
               <>
@@ -260,21 +229,9 @@ function App() {
           </button>
         </form>
 
-        {isSubmitting && validatorsStatus.some(v => v.active) && (
-          <div className="validators-section">
-            {validatorsStatus.map((v) => (
-              <motion.div 
-                key={v.id} 
-                className={`validator ${v.active ? 'active' : ''}`}
-                animate={v.active ? { y: [0, -10, 0] } : {}}
-                transition={{ duration: 0.5 }}
-              >
-                <div className="validator-icon">
-                  {v.active ? <CheckCircle2 size={16} /> : <Cpu size={16} />}
-                </div>
-                <span>Val {v.id}</span>
-              </motion.div>
-            ))}
+        {isSubmitting && statusMessage && (
+          <div className={statusMessage.includes('judgement') ? 'blinking-text' : 'status-text'}>
+            {statusMessage}
           </div>
         )}
 
@@ -287,7 +244,7 @@ function App() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.5 }}
             >
-              <label>Intelligent Contract Output</label>
+              <label>Consensus Reached (Actual Result from Contract)</label>
               <motion.div 
                 className="result-box"
                 initial={{ x: -20 }}
