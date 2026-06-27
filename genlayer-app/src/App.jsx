@@ -135,7 +135,9 @@ function App() {
         address: contractAddress,
         abi: ABI,
         functionName: 'submit_idea',
-        args: [idea]
+        args: [idea],
+        value: 0n,
+        gas: 30000000n // Bypass viem gas estimation for non-deterministic contracts
       });
 
       // 2. Wait for Consensus
