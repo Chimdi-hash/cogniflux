@@ -2,22 +2,15 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Orbit, Wallet, AlertTriangle, LogOut } from 'lucide-react';
 import { createClient } from 'genlayer-js';
-import { parseAbi, parseEther } from 'viem';
+import { studionet } from 'genlayer-js/chains';
+import { parseAbi } from 'viem';
 import './index.css';
 
-// Using a custom chain config since we know the exact RPC for Studio
-const studioChain = {
-  id: 61999,
-  name: 'GenLayer Studio Network',
-  nativeCurrency: { name: 'GEN', symbol: 'GEN', decimals: 18 },
-  rpcUrls: { default: { http: ['https://studio.genlayer.com/api'] } },
-};
-
 const GENLAYER_NETWORK_CONFIG = {
-  chainId: `0x${studioChain.id.toString(16)}`,
-  chainName: studioChain.name,
-  nativeCurrency: studioChain.nativeCurrency,
-  rpcUrls: studioChain.rpcUrls.default.http,
+  chainId: `0x${studionet.id.toString(16)}`,
+  chainName: studionet.name,
+  nativeCurrency: studionet.nativeCurrency,
+  rpcUrls: studionet.rpcUrls.default.http,
   blockExplorerUrls: null
 };
 
@@ -53,7 +46,7 @@ function App() {
   }, []);
 
   const checkNetwork = (chainId) => {
-    setIsCorrectNetwork(parseInt(chainId, 16) === studioChain.id);
+    setIsCorrectNetwork(parseInt(chainId, 16) === studionet.id);
   };
 
   const handleAccountsChanged = (accounts) => {
@@ -125,7 +118,7 @@ function App() {
     try {
       // Initialize the GenLayer SDK client for writing transactions
       const writeClient = createClient({
-        chain: studioChain,
+        chain: studionet,
         account: walletAddress,
         provider: window.ethereum,
       });
