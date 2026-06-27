@@ -10,12 +10,8 @@ class IdeaEvaluator(gl.Contract):
         self.latest_remark = "No ideas evaluated yet."
         self.latest_idea = ""
 
-    @gl.public.write.payable
+    @gl.public.write
     def submit_idea(self, idea: str) -> typing.Any:
-        amount = gl.message.value
-        if amount < u256(1 * 10**18):
-            raise gl.vm.UserError("You must send at least 1 GEN token to submit an idea!")
-
         def get_input() -> str:
             return f"A user wants to build the following web3 project on GenLayer: {idea}"
 

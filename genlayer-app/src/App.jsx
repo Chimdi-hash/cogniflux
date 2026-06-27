@@ -23,13 +23,13 @@ const GENLAYER_NETWORK_CONFIG = {
 
 // Use viem's parseAbi for type-safe ABI encoding required by genlayer-js
 const ABI = parseAbi([
-  "function submit_idea(string idea) payable",
+  "function submit_idea(string idea)",
   "function get_latest_remark() view returns (string)"
 ]);
 
 function App() {
   const [idea, setIdea] = useState('');
-  const [contractAddress] = useState('0x48fF68CBEA04C3d753695DB8520B7f6bba6eb095');
+  const [contractAddress] = useState('0x0D3E9532A296F896d9bDE3F6566c60422E514BaF');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
@@ -120,7 +120,7 @@ function App() {
 
     setIsSubmitting(true);
     setRemark('');
-    setStatusMessage('Awaiting wallet approval (1 GEN)...');
+    setStatusMessage('Awaiting wallet approval...');
 
     try {
       // Initialize the GenLayer SDK client for writing transactions
@@ -135,8 +135,7 @@ function App() {
         address: contractAddress,
         abi: ABI,
         functionName: 'submit_idea',
-        args: [idea],
-        value: parseEther("1.0") // 1 GEN in wei
+        args: [idea]
       });
 
       // 2. Wait for Consensus
@@ -241,7 +240,7 @@ function App() {
             ) : (
               <>
                 <Zap size={20} />
-                Pay 1 GEN & Evaluate
+                EVALUATE
               </>
             )}
           </button>
@@ -289,8 +288,8 @@ function App() {
           <div className="step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>Connect & Pay</h3>
-              <p>Your wallet connects to GenLayer and sends exactly 1 GEN token to trigger the `submit_idea` payable method.</p>
+              <h3>Connect & Evaluate</h3>
+              <p>Your wallet connects to GenLayer to sign a free transaction (0 GEN) to trigger the `submit_idea` method.</p>
             </div>
           </div>
           <div className="step">
