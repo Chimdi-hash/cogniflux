@@ -196,7 +196,7 @@ function App() {
         >
           <Orbit size={48} color="var(--neon-cyan)" />
         </motion.div>
-        <h1>GenLayer Nexus</h1>
+        <h1>CogniFlux</h1>
         <p className="subtitle">Intelligent Contract Idea Evaluator</p>
       </motion.header>
 
