@@ -207,7 +207,7 @@ function App() {
         transition={{ delay: 0.5, duration: 1 }}
       >
         <div className="status-dot"></div>
-        <span>Connected to GenLayer Studio Network</span>
+        <span>built on GenLayer Studio Network</span>
       </motion.div>
 
       <motion.div 
