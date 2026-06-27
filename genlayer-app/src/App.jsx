@@ -135,9 +135,11 @@ function App() {
 
       // 2. Wait for Consensus
       setStatusMessage('5 validators are running judgement............');
-      await writeClient.waitForTransactionReceipt({ 
+      const receipt = await writeClient.waitForTransactionReceipt({ 
         hash: txHash,
-        status: 'FINALIZED' // Wait for the AI consensus to reach finality
+        status: 'FINALIZED', // Wait for the AI consensus to reach finality
+        interval: 5000,   // Check every 5 seconds
+        retries: 60       // Retry up to 60 times (5 minutes total)
       });
 
       // 3. Fetch Actual Result
