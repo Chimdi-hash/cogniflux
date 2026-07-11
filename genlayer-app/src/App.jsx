@@ -139,7 +139,8 @@ function App() {
     try {
       const client = createClient({ 
         chain: studionet,
-        provider: window.ethereum
+        provider: window.ethereum,
+        account: walletAddress
       });
       const hash = await client.writeContract({
         address: contractAddress,
