@@ -1,5 +1,6 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
-from genlayer import *
+import genlayer as gl
+from genlayer.std import get_webpage
 import typing
 import json
 
@@ -18,7 +19,7 @@ class SentimentOracle(gl.Contract):
     @gl.public.write
     def analyze_sentiment(self, token: str, source_url: str) -> typing.Any:
         # Fetch the web page content (off-chain data)
-        webpage_content = gl.get_webpage(source_url)
+        webpage_content = get_webpage(source_url)
 
         def get_input() -> str:
             return f"Analyze the following web page content regarding the token '{token}'. Determine the overall market sentiment based ONLY on this text. Webpage Content:\n\n{webpage_content}"
