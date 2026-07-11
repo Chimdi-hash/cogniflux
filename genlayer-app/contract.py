@@ -8,10 +8,17 @@ class SmartEscrow(gl.Contract):
     status: str
     freelancer_url: str
 
-    def __init__(self, description: str):
+    def __init__(self):
+        self.job_description = ""
+        self.status = "UNINITIALIZED"
+        self.freelancer_url = ""
+
+    @gl.public.write
+    def create_job(self, description: str) -> None:
+        if self.status != "UNINITIALIZED":
+            raise Exception("Job already initialized")
         self.job_description = description
         self.status = "FUNDED"
-        self.freelancer_url = ""
 
     @gl.public.write
     def submit_work(self, source_url: str) -> None:

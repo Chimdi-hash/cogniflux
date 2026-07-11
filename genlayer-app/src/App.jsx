@@ -16,6 +16,7 @@ const GENLAYER_NETWORK_CONFIG = {
 
 // Use viem's parseAbi for type-safe ABI encoding required by genlayer-js
 const ABI = parseAbi([
+  "function create_job(string description)",
   "function submit_work(string source_url)",
   "function get_job_description() view returns (string)",
   "function get_status() view returns (string)",
@@ -150,6 +151,60 @@ function App() {
     }
   };
 
+  const handleCreateJob = async (e) => {
+    e.preventDefault();
+    if (!jobDescription.trim() || !contractAddress.trim()) return;
+    
+    if (!walletAddress) {
+      alert("Please connect your wallet first.");
+      return;
+    }
+
+    if (!isCorrectNetwork) {
+      await switchToGenLayer();
+      return;
+    }
+
+    setIsSubmitting(true);
+    setStatusMessage('Awaiting wallet approval...');
+
+    try {
+      const writeClient = createClient({
+        chain: studionet,
+        account: walletAddress,
+        provider: window.ethereum,
+      });
+      
+      const txHash = await writeClient.writeContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'create_job',
+        args: [jobDescription],
+        value: 0n,
+        gas: 30000000n
+      });
+
+      setStatusMessage('Initializing escrow...');
+      await writeClient.waitForTransactionReceipt({ 
+        hash: txHash,
+        status: 'FINALIZED',
+        interval: 5000,
+        retries: 60
+      });
+
+      setStatusMessage('Escrow created!');
+      await loadEscrow();
+      setStatusMessage('');
+      
+    } catch (err) {
+      console.error(err);
+      alert("Transaction failed or was rejected. See console for details.");
+      setStatusMessage('');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleSubmitWork = async (e) => {
     e.preventDefault();
     if (!sourceUrl.trim() || !contractAddress.trim()) return;
@@ -271,7 +326,46 @@ function App() {
           )}
         </div>
 
-        {jobDescription && (
+        {escrowStatus === 'UNINITIALIZED' && (
+          <motion.div 
+            className="escrow-details"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="escrow-header">
+              <h3>Initialize Escrow</h3>
+            </div>
+            
+            <form onSubmit={handleCreateJob}>
+              <div className="input-group">
+                <input 
+                  type="text" 
+                  placeholder="Job Description (e.g. Write an article about AI)" 
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  disabled={isSubmitting}
+                  className="cyber-input"
+                />
+              </div>
+              
+              <button type="submit" className="btn-primary" disabled={isSubmitting || !jobDescription.trim()}>
+                {isSubmitting ? (
+                  <>
+                    <div className="loader"></div>
+                    Initializing...
+                  </>
+                ) : (
+                  <>
+                    <Zap size={20} />
+                    CREATE ESCROW
+                  </>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        )}
+
+        {(escrowStatus && escrowStatus !== 'UNINITIALIZED') && (
           <motion.div 
             className="escrow-details"
             initial={{ opacity: 0, y: 20 }}
