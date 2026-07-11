@@ -168,7 +168,7 @@ function App() {
     }
   };
 
-  const handleMint = () => executeTransaction('mint', [1000n], 'Requesting 1000 Test GEN...', 'Successfully received 1000 Test GEN!');
+  const handleMint = () => executeTransaction('mint', [5n], 'Requesting 5 Test GEN...', 'Successfully received 5 Test GEN!');
   const handleCreateMarket = () => executeTransaction('create_market', [newMarketQuestion], 'Creating market...', 'Market created successfully!');
   const handleBet = (marketId, isYes) => {
     const amt = parseInt(betAmounts[marketId] || "0");
@@ -201,7 +201,7 @@ function App() {
           {contractAddress && walletAddress && (
             <div className="wallet-badge">
               <span style={{ color: '#a5b4fc' }}>{myBalance} GEN tokens</span>
-              <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Request 1000 GEN</button>
+              <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Request 5 GEN</button>
             </div>
           )}
           
