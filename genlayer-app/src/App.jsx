@@ -240,20 +240,6 @@ function App() {
         <div className="sidebar">
           <div className="glass-panel">
             <div className="panel-header">
-              <AlertTriangle size={20} color="#818cf8" /> Contract Connection
-            </div>
-            <div className="panel-desc">Enter the TruthStake Intelligent Contract address deployed on GenLayer Studio.</div>
-            <input
-              type="text"
-              placeholder="0x..."
-              value={contractAddress}
-              onChange={(e) => setContractAddress(e.target.value)}
-              className="input-field"
-            />
-          </div>
-
-          <div className="glass-panel">
-            <div className="panel-header">
               <PlusCircle size={20} color="#a855f7" /> Create New Market
             </div>
             <div className="panel-desc">Ask a question about a verifiable real-world event.</div>
