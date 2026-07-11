@@ -1,23 +1,25 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
-import typing
 import json
 
-class SentimentOracle(gl.Contract):
-    latest_sentiment: str
-    latest_rationale: str
-    latest_token: str
-    latest_url: str
+class SmartEscrow(gl.Contract):
+    job_description: str
+    status: str
+    freelancer_url: str
 
-    def __init__(self):
-        self.latest_sentiment = "NONE"
-        self.latest_rationale = "No analysis yet."
-        self.latest_token = ""
-        self.latest_url = ""
+    def __init__(self, description: str):
+        self.job_description = description
+        self.status = "FUNDED"
+        self.freelancer_url = ""
 
     @gl.public.write
-    def analyze_sentiment(self, token: str, source_url: str) -> None:
-        def get_input() -> str:
+    def submit_work(self, source_url: str) -> None:
+        if self.status != "FUNDED":
+            # For hackathon simplicity, we allow resubmissions if REJECTED, but let's just allow it anytime it's not RELEASED
+            if self.status == "RELEASED":
+                return
+
+        def evaluate_work() -> str:
             try:
                 # Fetch the web page content (off-chain data)
                 webpage_content = gl.get_webpage(source_url, mode="text")
@@ -27,44 +29,48 @@ class SentimentOracle(gl.Contract):
                     webpage_content = webpage_content[:10000] + "... (truncated)"
 
                 task = f"""
-Analyze the following web page content regarding the token '{token}'. Determine the overall market sentiment based ONLY on this text.
+You are an expert evaluator. Determine if the following submitted work fulfills the job description.
 
-Web content:
+Job Description: "{self.job_description}"
+
+Submitted Work Content:
 {webpage_content}
 
 Respond in JSON:
 {{
-    "sentiment": str, // exactly 'BULLISH', 'BEARISH', or 'NEUTRAL'
-    "rationale": str // a short, one sentence explanation
+    "approved": bool // exactly true or false
 }}
-It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters, your output must be only JSON without any formatting prefix or suffix.
-This result should be perfectly parsable by a JSON parser without errors.
+It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters.
                 """
                 result = gl.exec_prompt(task).replace("```json", "").replace("```", "").strip()
                 return json.dumps(json.loads(result), sort_keys=True)
             except Exception as e:
-                # Return a valid JSON string indicating the error so consensus doesn't fail
-                return json.dumps({"sentiment": "ERROR", "rationale": f"Execution failed: {str(e)}"}, sort_keys=True)
+                return json.dumps({"approved": False}, sort_keys=True)
 
-        self.latest_token = token
-        self.latest_url = source_url
+        self.freelancer_url = source_url
         
         # Ask LLM validators to output a strict JSON
-        result_json_str = gl.eq_principle_strict_eq(get_input)
+        result_json_str = gl.eq_principle_strict_eq(evaluate_work)
         
         # Parse the consensus JSON response
         try:
             result = json.loads(result_json_str)
-            self.latest_sentiment = result.get("sentiment", "UNKNOWN").upper()
-            self.latest_rationale = result.get("rationale", "No rationale provided.")
+            is_approved = result.get("approved", False)
+            if is_approved:
+                self.status = "RELEASED"
+            else:
+                self.status = "REJECTED"
         except Exception:
-            self.latest_sentiment = "ERROR"
-            self.latest_rationale = "Failed to parse JSON. Raw output: " + str(result_json_str)
+            self.status = "REJECTED"
 
     @gl.public.view
-    def get_latest_sentiment(self) -> str:
-        return self.latest_sentiment
+    def get_job_description(self) -> str:
+        return self.job_description
     
     @gl.public.view
-    def get_latest_rationale(self) -> str:
-        return self.latest_rationale
+    def get_status(self) -> str:
+        return self.status
+
+    @gl.public.view
+    def get_freelancer_url(self) -> str:
+        return self.freelancer_url
