@@ -18,10 +18,9 @@ class SentimentOracle(gl.Contract):
 
     @gl.public.write
     def analyze_sentiment(self, token: str, source_url: str) -> typing.Any:
-        # Fetch the web page content (off-chain data)
-        webpage_content = get_webpage(source_url)
-
         def get_input() -> str:
+            # Fetch the web page content (off-chain data)
+            webpage_content = get_webpage(source_url)
             return f"Analyze the following web page content regarding the token '{token}'. Determine the overall market sentiment based ONLY on this text. Webpage Content:\n\n{webpage_content}"
 
         self.latest_token = token
