@@ -16,19 +16,22 @@ const GENLAYER_NETWORK_CONFIG = {
 
 // Use viem's parseAbi for type-safe ABI encoding required by genlayer-js
 const ABI = parseAbi([
-  "function submit_idea(string idea)",
-  "function get_latest_remark() view returns (string)"
+  "function analyze_sentiment(string token, string source_url)",
+  "function get_latest_sentiment() view returns (string)",
+  "function get_latest_rationale() view returns (string)"
 ]);
 
 function App() {
-  const [idea, setIdea] = useState('');
-  const [contractAddress] = useState('0x0D3E9532A296F896d9bDE3F6566c60422E514BaF');
+  const [tokenSymbol, setTokenSymbol] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [contractAddress] = useState('0x598a8544378a1F0B46C99F7CE46f272DA12daF9e');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [sentiment, setSentiment] = useState('');
+  const [rationale, setRationale] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
-  const [remark, setRemark] = useState('');
 
   // Check network on load and account change
   useEffect(() => {
@@ -74,7 +77,8 @@ function App() {
 
   const disconnectWallet = () => {
     setWalletAddress('');
-    setRemark('');
+    setSentiment('');
+    setRationale('');
   };
 
   const switchToGenLayer = async () => {
@@ -99,7 +103,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!idea.trim()) return;
+    if (!tokenSymbol.trim() || !sourceUrl.trim()) return;
     
     if (!walletAddress) {
       alert("Please connect your wallet first.");
@@ -112,7 +116,8 @@ function App() {
     }
 
     setIsSubmitting(true);
-    setRemark('');
+    setSentiment('');
+    setRationale('');
     setStatusMessage('Awaiting wallet approval...');
 
     try {
@@ -123,42 +128,51 @@ function App() {
         provider: window.ethereum,
       });
       
-      // 1. Send Transaction (Calls submit_idea on the GenLayer Contract)
+      // 1. Send Transaction (Calls analyze_sentiment on the GenLayer Contract)
       const txHash = await writeClient.writeContract({
         address: contractAddress,
         abi: ABI,
-        functionName: 'submit_idea',
-        args: [idea],
+        functionName: 'analyze_sentiment',
+        args: [tokenSymbol, sourceUrl],
         value: 0n,
-        gas: 30000000n // Bypass viem gas estimation for non-deterministic contracts
+        gas: 30000000n // Bypass viem gas estimation for non-deterministic chains
       });
 
       // 2. Wait for Consensus
       setStatusMessage('5 validators are running judgement............');
-      const receipt = await writeClient.waitForTransactionReceipt({ 
+      await writeClient.waitForTransactionReceipt({ 
         hash: txHash,
-        status: 'FINALIZED', // Wait for the AI consensus to reach finality
-        interval: 5000,   // Check every 5 seconds
-        retries: 60       // Retry up to 60 times (5 minutes total)
+        status: 'FINALIZED',
+        interval: 5000,
+        retries: 60
       });
 
       // 3. Fetch Actual Result
-      setStatusMessage('Fetching consensus result...');
+      setStatusMessage('Fetching final sentiment consensus...');
+      const publicClient = createClient({ chain: studionet });
       
-      const remarkResult = await writeClient.readContract({
+      const newSentiment = await publicClient.readContract({
         address: contractAddress,
         abi: ABI,
-        functionName: 'get_latest_remark',
+        functionName: 'get_latest_sentiment'
       });
-      
-      setRemark(remarkResult);
+
+      const newRationale = await publicClient.readContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'get_latest_rationale'
+      });
+
+      setSentiment(newSentiment);
+      setRationale(newRationale);
+      setStatusMessage('');
       
     } catch (err) {
       console.error(err);
       alert("Transaction failed or was rejected. See console for details.");
+      setStatusMessage('');
     } finally {
       setIsSubmitting(false);
-      setStatusMessage('');
     }
   };
 
@@ -197,7 +211,7 @@ function App() {
           <Orbit size={48} color="var(--neon-cyan)" />
         </motion.div>
         <h1>CogniFlux</h1>
-        <p className="subtitle">Intelligent Contract Idea Evaluator</p>
+        <p className="subtitle">Decentralized DAO Sentiment Oracle</p>
       </motion.header>
 
       <motion.div 
@@ -218,55 +232,67 @@ function App() {
       >
         <form onSubmit={handleSubmit}>
           <div className="input-group">
-            <label htmlFor="idea">Input Web3 Project Idea</label>
-            <textarea
-              id="idea"
-              placeholder="e.g., A decentralized exchange where liquidity is managed by autonomous AI agents..."
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
+            <input 
+              type="text" 
+              placeholder="Token Symbol (e.g. Ethereum)" 
+              value={tokenSymbol}
+              onChange={(e) => setTokenSymbol(e.target.value)}
               disabled={isSubmitting}
+              className="cyber-input"
+            />
+          </div>
+          <div className="input-group">
+            <input 
+              type="url" 
+              placeholder="Source URL (e.g. news article, reddit post)" 
+              value={sourceUrl}
+              onChange={(e) => setSourceUrl(e.target.value)}
+              disabled={isSubmitting}
+              className="cyber-input"
             />
           </div>
           
-          <button type="submit" className="btn-primary" disabled={isSubmitting || !idea.trim()}>
+          <button type="submit" className="btn-primary" disabled={isSubmitting || !tokenSymbol.trim() || !sourceUrl.trim()}>
             {isSubmitting ? (
               <>
                 <div className="loader"></div>
-                Processing...
+                Analyzing...
               </>
             ) : (
               <>
                 <Zap size={20} />
-                EVALUATE
+                ANALYZE SENTIMENT
               </>
             )}
           </button>
         </form>
 
-        {isSubmitting && statusMessage && (
-          <div className={statusMessage.includes('judgement') ? 'blinking-text' : 'status-text'}>
-            {statusMessage}
-          </div>
-        )}
-
         <AnimatePresence>
-          {remark && !isSubmitting && (
+          {statusMessage && (
             <motion.div 
-              className="result-container"
+              className="status-message blinking-text"
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.5 }}
             >
-              <label>Consensus Reached (Actual Result from Contract)</label>
-              <motion.div 
-                className="result-box"
-                initial={{ x: -20 }}
-                animate={{ x: 0 }}
-                transition={{ type: "spring", stiffness: 100 }}
-              >
-                {remark}
-              </motion.div>
+              {statusMessage}
+            </motion.div>
+          )}
+
+          {sentiment && (
+            <motion.div 
+              className="result-container"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", bounce: 0.5 }}
+            >
+              <h3>Consensus Reached</h3>
+              <div className={`sentiment-badge ${sentiment.toLowerCase()}`}>
+                {sentiment}
+              </div>
+              <div className="cyber-remark">
+                <p>{rationale}</p>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -285,29 +311,22 @@ function App() {
           <div className="step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>Connect & Evaluate</h3>
-              <p>Your wallet connects to GenLayer to sign a free transaction (0 GEN) to trigger the `submit_idea` method.</p>
+              <h3>Connect & Submit</h3>
+              <p>Your wallet connects to GenLayer. Submit a Token and a Source URL to trigger the `analyze_sentiment` method.</p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h3>LLM Processing</h3>
-              <p>The contract executes a non-deterministic block using `gl.eq_principle.prompt_non_comparative`.</p>
+              <h3>Intelligent Verification</h3>
+              <p>GenLayer's validators fetch the URL's contents from the web and use AI to analyze the token's sentiment.</p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h3>Validator Consensus</h3>
-              <p>5 independent validators evaluate the LLM's cyberpunk remark against strict formatting criteria.</p>
-            </div>
-          </div>
-          <div className="step">
-            <div className="step-number">4</div>
-            <div className="step-content">
-              <h3>State Update</h3>
-              <p>Consensus is reached, the transaction finalizes, and the futuristic output is recorded on-chain.</p>
+              <h3>Consensus</h3>
+              <p>Once validators agree, the final sentiment (BULLISH/BEARISH) is locked on-chain as a verified Oracle update.</p>
             </div>
           </div>
         </div>

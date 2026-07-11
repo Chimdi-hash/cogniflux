@@ -165,7 +165,38 @@ textarea:focus {
   margin-top: 1.5rem;
 }
 
-.result-box {
+.sentiment-badge {
+  display: inline-block;
+  padding: 0.5rem 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.sentiment-badge.bullish {
+  background: rgba(0, 255, 170, 0.1);
+  color: #00ffaa;
+  border: 1px solid #00ffaa;
+  box-shadow: 0 0 15px rgba(0, 255, 170, 0.4);
+}
+
+.sentiment-badge.bearish {
+  background: rgba(255, 51, 102, 0.1);
+  color: #ff3366;
+  border: 1px solid #ff3366;
+  box-shadow: 0 0 15px rgba(255, 51, 102, 0.4);
+}
+
+.sentiment-badge.neutral {
+  background: rgba(150, 150, 150, 0.1);
+  color: #cccccc;
+  border: 1px solid #cccccc;
+}
+
+.cyber-remark {
   background: rgba(0, 243, 255, 0.05);
   border-left: 4px solid var(--neon-cyan);
   padding: 1.5rem;
