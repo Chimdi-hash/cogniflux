@@ -186,7 +186,12 @@ function App() {
     executeTransaction('resolve_market', [marketId, url], 'Validators are resolving market using AI...', 'Market resolved successfully!');
   };
 
-  const myBalance = protocolState.balances[walletAddress] || 0;
+  const getBalance = () => {
+    if (!walletAddress || !protocolState?.balances) return 0;
+    const key = Object.keys(protocolState.balances).find(k => k.toLowerCase() === walletAddress.toLowerCase());
+    return key ? protocolState.balances[key] : 0;
+  };
+  const myBalance = getBalance();
   const marketsList = Object.values(protocolState.markets).sort((a, b) => parseInt(b.id) - parseInt(a.id));
 
   return (
