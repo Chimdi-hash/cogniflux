@@ -1,10 +1,10 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
-import genlayer as gl
+from genlayer import *
 from genlayer.std import get_webpage
 import typing
 import json
 
-class SentimentOracle(gl.Contract):
+class SentimentOracle(Contract):
     latest_sentiment: str
     latest_rationale: str
     latest_token: str
@@ -16,7 +16,7 @@ class SentimentOracle(gl.Contract):
         self.latest_token = ""
         self.latest_url = ""
 
-    @gl.public.write
+    @public.write
     def analyze_sentiment(self, token: str, source_url: str) -> typing.Any:
         def get_input() -> str:
             # Fetch the web page content (off-chain data)
@@ -27,7 +27,7 @@ class SentimentOracle(gl.Contract):
         self.latest_url = source_url
         
         # Ask LLM validators to output a strict JSON
-        result_json_str = gl.eq_principle.prompt_non_comparative(
+        result_json_str = eq_principle.prompt_non_comparative(
             get_input,
             task="Determine if the sentiment for the given token is BULLISH, BEARISH, or NEUTRAL. Output ONLY a valid JSON object with exactly two keys: 'sentiment' (must be exactly 'BULLISH', 'BEARISH', or 'NEUTRAL') and 'rationale' (a short, one sentence explanation).",
             criteria="""
@@ -46,10 +46,10 @@ class SentimentOracle(gl.Contract):
             self.latest_sentiment = "ERROR"
             self.latest_rationale = "Failed to parse JSON. Raw output: " + result_json_str
 
-    @gl.public.view
+    @public.view
     def get_latest_sentiment(self) -> str:
         return self.latest_sentiment
     
-    @gl.public.view
+    @public.view
     def get_latest_rationale(self) -> str:
         return self.latest_rationale
