@@ -24,7 +24,7 @@ const ABI = parseAbi([
 function App() {
   const [tokenSymbol, setTokenSymbol] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
-  const [contractAddress] = useState('0x598a8544378a1F0B46C99F7CE46f272DA12daF9e');
+  const [contractAddress] = useState('0x0eEbCE4619541b57352cCB70aC4D6c317B491184');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
