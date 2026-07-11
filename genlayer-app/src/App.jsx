@@ -151,9 +151,15 @@ function App() {
 
       setStatusMessage(`Transaction sent! Waiting for validators (Hash: ${hash.slice(0, 8)}...)`);
       
-      const receipt = await client.waitForTransactionReceipt({ hash });
+      const receipt = await client.waitForTransactionReceipt({ 
+        hash,
+        status: 'FINALIZED' 
+      });
       
-      if (receipt.status === 'success') {
+      console.log("Transaction Receipt:", receipt);
+
+      // Support viem v2 string status, integer status, or GenLayer custom statuses
+      if (receipt.status === 'success' || receipt.status === 1 || receipt.status === 'FINALIZED' || receipt.status === 'ACCEPTED') {
         setStatusMessage(`✅ ${successMessage}`);
         fetchState();
       } else {
