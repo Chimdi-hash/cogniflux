@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Orbit, Wallet, AlertTriangle, LogOut } from 'lucide-react';
+import { Zap, Orbit, Wallet, AlertTriangle, LogOut, CheckCircle, XCircle } from 'lucide-react';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 import { parseAbi } from 'viem';
@@ -16,22 +16,27 @@ const GENLAYER_NETWORK_CONFIG = {
 
 // Use viem's parseAbi for type-safe ABI encoding required by genlayer-js
 const ABI = parseAbi([
-  "function analyze_sentiment(string token, string source_url)",
-  "function get_latest_sentiment() view returns (string)",
-  "function get_latest_rationale() view returns (string)"
+  "function submit_work(string source_url)",
+  "function get_job_description() view returns (string)",
+  "function get_status() view returns (string)",
+  "function get_freelancer_url() view returns (string)"
 ]);
 
 function App() {
-  const [tokenSymbol, setTokenSymbol] = useState('');
+  const [contractAddress, setContractAddress] = useState('');
   const [sourceUrl, setSourceUrl] = useState('');
-  const [contractAddress] = useState('0x42fEDB0208A7942eF2Cf7a1FC11456469943afF6');
+  
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [sentiment, setSentiment] = useState('');
-  const [rationale, setRationale] = useState('');
+  const [isLoadingEscrow, setIsLoadingEscrow] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
+
+  // Escrow State
+  const [jobDescription, setJobDescription] = useState('');
+  const [escrowStatus, setEscrowStatus] = useState('');
+  const [submittedUrl, setSubmittedUrl] = useState('');
 
   // Check network on load and account change
   useEffect(() => {
@@ -77,8 +82,9 @@ function App() {
 
   const disconnectWallet = () => {
     setWalletAddress('');
-    setSentiment('');
-    setRationale('');
+    setJobDescription('');
+    setEscrowStatus('');
+    setSubmittedUrl('');
   };
 
   const switchToGenLayer = async () => {
@@ -101,9 +107,46 @@ function App() {
     }
   };
 
-  const handleSubmit = async (e) => {
+  const loadEscrow = async () => {
+    if (!contractAddress.trim()) return;
+    setIsLoadingEscrow(true);
+    setJobDescription('');
+    setEscrowStatus('');
+    setSubmittedUrl('');
+    
+    try {
+      const publicClient = createClient({ chain: studionet });
+      
+      const description = await publicClient.readContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'get_job_description'
+      });
+      const status = await publicClient.readContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'get_status'
+      });
+      const url = await publicClient.readContract({
+        address: contractAddress,
+        abi: ABI,
+        functionName: 'get_freelancer_url'
+      });
+
+      setJobDescription(description);
+      setEscrowStatus(status);
+      setSubmittedUrl(url);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to load escrow. Please ensure the contract address is correct.");
+    } finally {
+      setIsLoadingEscrow(false);
+    }
+  };
+
+  const handleSubmitWork = async (e) => {
     e.preventDefault();
-    if (!tokenSymbol.trim() || !sourceUrl.trim()) return;
+    if (!sourceUrl.trim() || !contractAddress.trim()) return;
     
     if (!walletAddress) {
       alert("Please connect your wallet first.");
@@ -116,8 +159,6 @@ function App() {
     }
 
     setIsSubmitting(true);
-    setSentiment('');
-    setRationale('');
     setStatusMessage('Awaiting wallet approval...');
 
     try {
@@ -128,18 +169,18 @@ function App() {
         provider: window.ethereum,
       });
       
-      // 1. Send Transaction (Calls analyze_sentiment on the GenLayer Contract)
+      // 1. Send Transaction
       const txHash = await writeClient.writeContract({
         address: contractAddress,
         abi: ABI,
-        functionName: 'analyze_sentiment',
-        args: [tokenSymbol, sourceUrl],
+        functionName: 'submit_work',
+        args: [sourceUrl],
         value: 0n,
         gas: 30000000n // Bypass viem gas estimation for non-deterministic chains
       });
 
       // 2. Wait for Consensus
-      setStatusMessage('5 validators are running judgement............');
+      setStatusMessage('5 validators are reviewing your work via LLM...');
       await writeClient.waitForTransactionReceipt({ 
         hash: txHash,
         status: 'FINALIZED',
@@ -148,23 +189,9 @@ function App() {
       });
 
       // 3. Fetch Actual Result
-      setStatusMessage('Fetching final sentiment consensus...');
-      const publicClient = createClient({ chain: studionet });
+      setStatusMessage('Fetching final consensus state...');
+      await loadEscrow();
       
-      const newSentiment = await publicClient.readContract({
-        address: contractAddress,
-        abi: ABI,
-        functionName: 'get_latest_sentiment'
-      });
-
-      const newRationale = await publicClient.readContract({
-        address: contractAddress,
-        abi: ABI,
-        functionName: 'get_latest_rationale'
-      });
-
-      setSentiment(newSentiment);
-      setRationale(newRationale);
       setStatusMessage('');
       
     } catch (err) {
@@ -210,8 +237,8 @@ function App() {
         >
           <Orbit size={48} color="var(--neon-cyan)" />
         </motion.div>
-        <h1>CogniFlux</h1>
-        <p className="subtitle">Decentralized DAO Sentiment Oracle</p>
+        <h1>Smart Escrow</h1>
+        <p className="subtitle">AI-Powered Freelance Escrow Protocol</p>
       </motion.header>
 
       <motion.div 
@@ -230,42 +257,76 @@ function App() {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.2, duration: 0.6 }}
       >
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <input 
-              type="text" 
-              placeholder="Token Symbol (e.g. Ethereum)" 
-              value={tokenSymbol}
-              onChange={(e) => setTokenSymbol(e.target.value)}
-              disabled={isSubmitting}
-              className="cyber-input"
-            />
-          </div>
-          <div className="input-group">
-            <input 
-              type="url" 
-              placeholder="Source URL (e.g. news article, reddit post)" 
-              value={sourceUrl}
-              onChange={(e) => setSourceUrl(e.target.value)}
-              disabled={isSubmitting}
-              className="cyber-input"
-            />
-          </div>
-          
-          <button type="submit" className="btn-primary" disabled={isSubmitting || !tokenSymbol.trim() || !sourceUrl.trim()}>
-            {isSubmitting ? (
-              <>
-                <div className="loader"></div>
-                Analyzing...
-              </>
-            ) : (
-              <>
-                <Zap size={20} />
-                ANALYZE SENTIMENT
-              </>
-            )}
+        <div className="escrow-loader">
+          <input 
+            type="text" 
+            placeholder="Escrow Contract Address (0x...)" 
+            value={contractAddress}
+            onChange={(e) => setContractAddress(e.target.value)}
+            className="cyber-input"
+          />
+          <button onClick={loadEscrow} className="btn-secondary" disabled={isLoadingEscrow || !contractAddress.trim()}>
+            {isLoadingEscrow ? 'Loading...' : 'Load Escrow'}
           </button>
-        </form>
+        </div>
+
+        {jobDescription && (
+          <motion.div 
+            className="escrow-details"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="escrow-header">
+              <h3>Escrow Details</h3>
+              <div className={`status-badge ${escrowStatus.toLowerCase()}`}>
+                {escrowStatus === 'RELEASED' && <CheckCircle size={16} />}
+                {escrowStatus === 'REJECTED' && <XCircle size={16} />}
+                {escrowStatus}
+              </div>
+            </div>
+            
+            <div className="cyber-remark">
+              <label>Job Description</label>
+              <p>{jobDescription}</p>
+            </div>
+
+            {submittedUrl && (
+              <div className="cyber-remark">
+                <label>Latest Submission</label>
+                <a href={submittedUrl} target="_blank" rel="noopener noreferrer">{submittedUrl}</a>
+              </div>
+            )}
+
+            {escrowStatus !== 'RELEASED' && (
+              <form onSubmit={handleSubmitWork} style={{ marginTop: '2rem' }}>
+                <div className="input-group">
+                  <input 
+                    type="url" 
+                    placeholder="Source URL (e.g. GitHub PR, Article Link)" 
+                    value={sourceUrl}
+                    onChange={(e) => setSourceUrl(e.target.value)}
+                    disabled={isSubmitting}
+                    className="cyber-input"
+                  />
+                </div>
+                
+                <button type="submit" className="btn-primary" disabled={isSubmitting || !sourceUrl.trim()}>
+                  {isSubmitting ? (
+                    <>
+                      <div className="loader"></div>
+                      Evaluating...
+                    </>
+                  ) : (
+                    <>
+                      <Zap size={20} />
+                      SUBMIT WORK FOR AI EVALUATION
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </motion.div>
+        )}
 
         <AnimatePresence>
           {statusMessage && (
@@ -274,25 +335,9 @@ function App() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
+              style={{ marginTop: '1.5rem' }}
             >
               {statusMessage}
-            </motion.div>
-          )}
-
-          {sentiment && (
-            <motion.div 
-              className="result-container"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", bounce: 0.5 }}
-            >
-              <h3>Consensus Reached</h3>
-              <div className={`sentiment-badge ${sentiment.toLowerCase()}`}>
-                {sentiment}
-              </div>
-              <div className="cyber-remark">
-                <p>{rationale}</p>
-              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -305,28 +350,28 @@ function App() {
         transition={{ delay: 0.4, duration: 0.6 }}
       >
         <h2 style={{ marginBottom: '1.5rem', color: 'var(--neon-purple)', fontSize: '1.5rem' }}>
-          How it Works (GenLayer)
+          How it Works
         </h2>
         <div className="steps-container">
           <div className="step">
             <div className="step-number">1</div>
             <div className="step-content">
-              <h3>Connect & Submit</h3>
-              <p>Your wallet connects to GenLayer. Submit a Token and a Source URL to trigger the `analyze_sentiment` method.</p>
+              <h3>Deploy Escrow</h3>
+              <p>The client creates an escrow contract instantiated with a specific job description and funds it.</p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">2</div>
             <div className="step-content">
-              <h3>Intelligent Verification</h3>
-              <p>GenLayer's validators fetch the URL's contents from the web and use AI to analyze the token's sentiment.</p>
+              <h3>Submit & Evaluate</h3>
+              <p>The freelancer submits a URL of their work. GenLayer validators independently fetch the work and use AI to check if it matches the job description.</p>
             </div>
           </div>
           <div className="step">
             <div className="step-number">3</div>
             <div className="step-content">
-              <h3>Consensus</h3>
-              <p>Once validators agree, the final sentiment (BULLISH/BEARISH) is locked on-chain as a verified Oracle update.</p>
+              <h3>Consensus & Payout</h3>
+              <p>If validators reach consensus that the work is satisfactory, the contract state becomes RELEASED and funds are unlocked.</p>
             </div>
           </div>
         </div>
