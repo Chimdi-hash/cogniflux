@@ -105,21 +105,20 @@ label {
   letter-spacing: 1px;
 }
 
-textarea {
+.cyber-input {
   width: 100%;
-  min-height: 120px;
+  height: 50px;
   background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   color: white;
-  padding: 1rem;
+  padding: 0 1rem;
   font-family: inherit;
   font-size: 1rem;
-  resize: vertical;
   transition: all 0.3s ease;
 }
 
-textarea:focus {
+.cyber-input:focus {
   outline: none;
   border-color: var(--neon-cyan);
   box-shadow: 0 0 15px rgba(0, 243, 255, 0.2);
