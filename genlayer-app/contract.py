@@ -18,10 +18,15 @@ class SentimentOracle(gl.Contract):
     @gl.public.write
     def analyze_sentiment(self, token: str, source_url: str) -> None:
         def get_input() -> str:
-            # Fetch the web page content (off-chain data)
-            webpage_content = gl.get_webpage(source_url, mode="text")
+            try:
+                # Fetch the web page content (off-chain data)
+                webpage_content = gl.get_webpage(source_url, mode="text")
+                
+                # Truncate webpage content to avoid LLM context limits
+                if len(webpage_content) > 10000:
+                    webpage_content = webpage_content[:10000] + "... (truncated)"
 
-            task = f"""
+                task = f"""
 Analyze the following web page content regarding the token '{token}'. Determine the overall market sentiment based ONLY on this text.
 
 Web content:
@@ -34,9 +39,12 @@ Respond in JSON:
 }}
 It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters, your output must be only JSON without any formatting prefix or suffix.
 This result should be perfectly parsable by a JSON parser without errors.
-            """
-            result = gl.exec_prompt(task).replace("```json", "").replace("```", "")
-            return json.dumps(json.loads(result), sort_keys=True)
+                """
+                result = gl.exec_prompt(task).replace("```json", "").replace("```", "").strip()
+                return json.dumps(json.loads(result), sort_keys=True)
+            except Exception as e:
+                # Return a valid JSON string indicating the error so consensus doesn't fail
+                return json.dumps({"sentiment": "ERROR", "rationale": f"Execution failed: {str(e)}"}, sort_keys=True)
 
         self.latest_token = token
         self.latest_url = source_url
