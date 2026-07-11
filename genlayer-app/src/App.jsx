@@ -147,7 +147,6 @@ function App() {
         abi: ABI,
         functionName: functionName,
         args: args,
-        account: walletAddress,
       });
 
       setStatusMessage(`Transaction sent! Waiting for validators (Hash: ${hash.slice(0, 8)}...)`);
