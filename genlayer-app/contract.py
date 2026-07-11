@@ -4,25 +4,27 @@ import genlayer as gl
 import json
 
 class SmartEscrow(gl.Contract):
-    state: TreeMap[str, str]
+    job_description: str
+    status: str
+    freelancer_url: str
 
     def __init__(self):
-        pass
+        self.job_description = ""
+        self.status = "UNINITIALIZED"
+        self.freelancer_url = ""
 
     @gl.public.write
     def create_job(self, description: str) -> None:
-        if "status" in self.state:
+        if self.status != "UNINITIALIZED":
             raise Exception("Job already initialized")
-        self.state["job_description"] = description
-        self.state["status"] = "FUNDED"
-        self.state["freelancer_url"] = ""
+        self.job_description = description
+        self.status = "FUNDED"
 
     @gl.public.write
     def submit_work(self, source_url: str) -> None:
-        current_status = self.state.get("status", "UNINITIALIZED")
-        if current_status != "FUNDED":
+        if self.status != "FUNDED":
             # For hackathon simplicity, we allow resubmissions if REJECTED, but let's just allow it anytime it's not RELEASED
-            if current_status == "RELEASED":
+            if self.status == "RELEASED":
                 return
 
         def evaluate_work() -> str:
@@ -37,7 +39,7 @@ class SmartEscrow(gl.Contract):
                 task = f"""
 You are an expert evaluator. Determine if the following submitted work fulfills the job description.
 
-Job Description: "{self.state.get("job_description", "")}"
+Job Description: "{self.job_description}"
 
 Submitted Work Content:
 {webpage_content}
@@ -53,7 +55,7 @@ It is mandatory that you respond only using the JSON format above, nothing else.
             except Exception as e:
                 return json.dumps({"approved": False}, sort_keys=True)
 
-        self.state["freelancer_url"] = source_url
+        self.freelancer_url = source_url
         
         # Ask LLM validators to output a strict JSON
         result_json_str = gl.eq_principle_strict_eq(evaluate_work)
@@ -63,20 +65,20 @@ It is mandatory that you respond only using the JSON format above, nothing else.
             result = json.loads(result_json_str)
             is_approved = result.get("approved", False)
             if is_approved:
-                self.state["status"] = "RELEASED"
+                self.status = "RELEASED"
             else:
-                self.state["status"] = "REJECTED"
+                self.status = "REJECTED"
         except Exception:
-            self.state["status"] = "REJECTED"
+            self.status = "REJECTED"
 
     @gl.public.view
     def get_job_description(self) -> str:
-        return self.state.get("job_description", "")
-
+        return self.job_description
+    
     @gl.public.view
     def get_status(self) -> str:
-        return self.state.get("status", "UNINITIALIZED")
+        return self.status
 
     @gl.public.view
     def get_freelancer_url(self) -> str:
-        return self.state.get("freelancer_url", "")
+        return self.freelancer_url
