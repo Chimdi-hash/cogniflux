@@ -137,7 +137,10 @@ function App() {
     setStatusMessage(loadingMessage);
 
     try {
-      const client = createClient({ chain: studionet });
+      const client = createClient({ 
+        chain: studionet,
+        provider: window.ethereum
+      });
       const hash = await client.writeContract({
         address: contractAddress,
         abi: ABI,
@@ -165,7 +168,7 @@ function App() {
     }
   };
 
-  const handleMint = () => executeTransaction('mint', [1000n], 'Minting 1000 GEN tokens...', 'Successfully minted 1000 GEN tokens!');
+  const handleMint = () => executeTransaction('mint', [1000n], 'Requesting 1000 Test GEN...', 'Successfully received 1000 Test GEN!');
   const handleCreateMarket = () => executeTransaction('create_market', [newMarketQuestion], 'Creating market...', 'Market created successfully!');
   const handleBet = (marketId, isYes) => {
     const amt = parseInt(betAmounts[marketId] || "0");
@@ -198,7 +201,7 @@ function App() {
           {contractAddress && walletAddress && (
             <div className="wallet-badge">
               <span style={{ color: '#a5b4fc' }}>{myBalance} GEN tokens</span>
-              <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Mint 1000</button>
+              <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Request 1000 GEN</button>
             </div>
           )}
           
