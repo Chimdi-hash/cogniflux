@@ -24,14 +24,13 @@ const ABI = parseAbi([
 ]);
 
 function App() {
-  const [contractAddress, setContractAddress] = useState(''); // User will provide this
+  const [contractAddress] = useState(''); // User will provide this
   const [sourceUrl, setSourceUrl] = useState('');
   
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoadingEscrow, setIsLoadingEscrow] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
 
   // Escrow State
@@ -49,7 +48,20 @@ function App() {
     
     // Auto-load escrow when component mounts if address exists
     if (contractAddress) {
-      loadEscrow();
+      const fetchEscrow = async () => {
+        try {
+          const publicClient = createClient({ chain: studionet });
+          const description = await publicClient.readContract({ address: contractAddress, abi: ABI, functionName: 'get_job_description' });
+          const status = await publicClient.readContract({ address: contractAddress, abi: ABI, functionName: 'get_status' });
+          const url = await publicClient.readContract({ address: contractAddress, abi: ABI, functionName: 'get_freelancer_url' });
+          setJobDescription(description);
+          setEscrowStatus(status);
+          setSubmittedUrl(url);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+      fetchEscrow();
     }
     
     return () => {
@@ -116,7 +128,6 @@ function App() {
 
   const loadEscrow = async () => {
     if (!contractAddress.trim()) return;
-    setIsLoadingEscrow(true);
     setJobDescription('');
     setEscrowStatus('');
     setSubmittedUrl('');
@@ -146,8 +157,6 @@ function App() {
     } catch (err) {
       console.error(err);
       alert("Failed to load escrow. Please ensure the contract address is correct.");
-    } finally {
-      setIsLoadingEscrow(false);
     }
   };
 
