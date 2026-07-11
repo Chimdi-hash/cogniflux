@@ -24,7 +24,7 @@ class TruthStake(gl.Contract):
         if amount <= 0 or amount > 10000:
             raise Exception("Invalid mint amount")
         state = self._get_state()
-        sender = gl.message.sender_address
+        sender = str(gl.message.sender_address)
         
         current_balance = state["balances"].get(sender, 0)
         state["balances"][sender] = current_balance + amount
@@ -37,7 +37,7 @@ class TruthStake(gl.Contract):
         
         state["markets"][market_id] = {
             "id": market_id,
-            "creator": gl.message.sender_address,
+            "creator": str(gl.message.sender_address),
             "question": question,
             "status": "OPEN",
             "total_yes": 0,
@@ -53,7 +53,7 @@ class TruthStake(gl.Contract):
     @gl.public.write
     def bet(self, market_id: str, is_yes: bool, amount: int) -> None:
         state = self._get_state()
-        sender = gl.message.sender_address
+        sender = str(gl.message.sender_address)
         
         if market_id not in state["markets"]:
             raise Exception("Market does not exist")
