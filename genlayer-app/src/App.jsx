@@ -165,7 +165,7 @@ function App() {
     }
   };
 
-  const handleMint = () => executeTransaction('mint', [1000n], 'Minting 1000 TS Tokens...', 'Successfully minted 1000 TS Tokens!');
+  const handleMint = () => executeTransaction('mint', [1000n], 'Minting 1000 GEN tokens...', 'Successfully minted 1000 GEN tokens!');
   const handleCreateMarket = () => executeTransaction('create_market', [newMarketQuestion], 'Creating market...', 'Market created successfully!');
   const handleBet = (marketId, isYes) => {
     const amt = parseInt(betAmounts[marketId] || "0");
@@ -197,7 +197,7 @@ function App() {
         <div className="nav-controls">
           {contractAddress && walletAddress && (
             <div className="wallet-badge">
-              <span style={{ color: '#a5b4fc' }}>{myBalance} TS Tokens</span>
+              <span style={{ color: '#a5b4fc' }}>{myBalance} GEN tokens</span>
               <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Mint 1000</button>
             </div>
           )}
@@ -285,7 +285,7 @@ function App() {
                   <div className="progress-section">
                     <div className="progress-labels">
                       <span className="text-yes">Yes {yesPercent}%</span>
-                      <span className="text-pool">Total Pool: {totalPool} TS</span>
+                      <span className="text-pool">Total Pool: {totalPool} GEN</span>
                       <span className="text-no">No {100 - yesPercent}%</span>
                     </div>
                     <div className="progress-bar-container">
@@ -299,7 +299,7 @@ function App() {
                       <div className="betting-controls">
                         <input
                           type="number"
-                          placeholder="Amount (TS)"
+                          placeholder="Amount (GEN)"
                           value={betAmounts[market.id] || ''}
                           onChange={(e) => setBetAmounts({...betAmounts, [market.id]: e.target.value})}
                           className="bet-input"
