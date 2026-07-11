@@ -23,7 +23,7 @@ const ABI = parseAbi([
 ]);
 
 function App() {
-  const [contractAddress, setContractAddress] = useState('');
+  const [contractAddress, setContractAddress] = useState(''); // User will provide this
   const [sourceUrl, setSourceUrl] = useState('');
   
   const [walletAddress, setWalletAddress] = useState('');
@@ -45,13 +45,19 @@ function App() {
       window.ethereum.on('chainChanged', checkNetwork);
       window.ethereum.on('accountsChanged', handleAccountsChanged);
     }
+    
+    // Auto-load escrow when component mounts if address exists
+    if (contractAddress) {
+      loadEscrow();
+    }
+    
     return () => {
       if (window.ethereum) {
         window.ethereum.removeListener('chainChanged', checkNetwork);
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
       }
     }
-  }, []);
+  }, [contractAddress]);
 
   const checkNetwork = (chainId) => {
     setIsCorrectNetwork(parseInt(chainId, 16) === studionet.id);
@@ -258,16 +264,11 @@ function App() {
         transition={{ delay: 0.2, duration: 0.6 }}
       >
         <div className="escrow-loader">
-          <input 
-            type="text" 
-            placeholder="Escrow Contract Address (0x...)" 
-            value={contractAddress}
-            onChange={(e) => setContractAddress(e.target.value)}
-            className="cyber-input"
-          />
-          <button onClick={loadEscrow} className="btn-secondary" disabled={isLoadingEscrow || !contractAddress.trim()}>
-            {isLoadingEscrow ? 'Loading...' : 'Load Escrow'}
-          </button>
+          {contractAddress ? (
+            <p><strong>Contract Loaded:</strong> {contractAddress}</p>
+          ) : (
+            <p className="text-secondary">Awaiting Escrow Deployment...</p>
+          )}
         </div>
 
         {jobDescription && (
