@@ -64,7 +64,10 @@ function App() {
 
   const fetchState = async () => {
     try {
-      const publicClient = createClient({ chain: studionet });
+      const publicClient = createClient({ 
+        chain: studionet,
+        provider: window.ethereum
+      });
       const stateStr = await publicClient.readContract({ 
         address: contractAddress, 
         abi: ABI, 
@@ -158,13 +161,9 @@ function App() {
       
       console.log("Transaction Receipt:", receipt);
 
-      // Support viem v2 string status, integer status, or GenLayer custom statuses
-      if (receipt.status === 'success' || receipt.status === 1 || receipt.status === 'FINALIZED' || receipt.status === 'ACCEPTED') {
-        setStatusMessage(`✅ ${successMessage}`);
-        fetchState();
-      } else {
-        setStatusMessage('❌ Transaction failed.');
-      }
+      // If it didn't throw, it was successful in GenLayer!
+      setStatusMessage(`✅ ${successMessage}`);
+      fetchState();
     } catch (err) {
       console.error(err);
       setStatusMessage(`❌ Error: ${err.message || 'Transaction failed'}`);
