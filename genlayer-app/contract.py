@@ -2,7 +2,7 @@
 from genlayer import *
 import json
 
-class TruthStake(gl.Contract):
+class Cogniflux(gl.Contract):
     state_json: str
 
     def __init__(self):
