@@ -344,6 +344,11 @@ function App() {
                         <div className={`result-answer result-${market.resolved_answer}`}>
                           {market.resolved_answer}
                         </div>
+                        {market.resolve_reason && (
+                          <div style={{ marginTop: '10px', fontSize: '0.85rem', color: '#cbd5e1', fontStyle: 'italic', maxWidth: '400px', lineHeight: '1.4' }}>
+                            "{market.resolve_reason}"
+                          </div>
+                        )}
                       </div>
                       <CheckCircle size={36} className={`result-${market.resolved_answer}`} style={{ opacity: 0.5 }} />
                     </div>
