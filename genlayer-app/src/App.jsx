@@ -201,7 +201,7 @@ function App() {
             <Activity color="white" size={24} />
           </div>
           <div>
-            <div className="brand-title">TruthStake</div>
+            <div className="brand-title">CogniFlux</div>
             <div className="brand-subtitle">Decentralized Prediction Market</div>
           </div>
         </div>
