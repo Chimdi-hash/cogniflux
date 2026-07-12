@@ -89,43 +89,39 @@ class TruthStake(gl.Contract):
         if market["status"] != "OPEN":
             raise Exception("Market already resolved")
 
-        def evaluate_truth() -> str:
+        def get_input() -> str:
             try:
                 # Fetch off-chain article data
                 webpage_content = gl.get_webpage(resolution_url, mode="text")
                 if len(webpage_content) > 15000:
                     webpage_content = webpage_content[:15000] + "... (truncated)"
+            except Exception:
+                webpage_content = "Failed to load webpage."
 
-                task = f"""
-You are a highly analytical decentralized oracle. Your job is to determine the factual outcome of a prediction market question based ONLY on the provided news article text.
-
-Prediction Market Question: "{market['question']}"
+            return f"""Prediction Market Question: "{market['question']}"
 
 News Article Content:
-{webpage_content}
+{webpage_content}"""
 
+        # Consensus algorithm
+        result_json_str = gl.eq_principle.prompt_non_comparative(
+            get_input,
+            task="""You are a highly analytical decentralized oracle. Your job is to determine the factual outcome of a prediction market question based ONLY on the provided news article text.
 First, check if the text appears to be a legitimate news article or official source. 
 If it is completely irrelevant, spam, or fails to directly answer the question, output "INVALID".
 If the article confirms the event happened or the answer to the question is undeniably Yes, output "YES".
 If the article confirms the event did NOT happen or the answer is undeniably No, output "NO".
 
 Respond in JSON format:
-{{
+{
     "resolved_status": "YES" // must be strictly "YES", "NO", or "INVALID"
-}}
-It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters.
-"""
-                result = gl.exec_prompt(task).replace("```json", "").replace("```", "").strip()
-                parsed = json.loads(result)
-                status = parsed.get("resolved_status", "INVALID")
-                if status not in ["YES", "NO", "INVALID"]:
-                    status = "INVALID"
-                return json.dumps({"resolved_status": status}, sort_keys=True)
-            except Exception:
-                return json.dumps({"resolved_status": "INVALID"}, sort_keys=True)
-
-        # Consensus algorithm
-        result_json_str = gl.eq_principle_strict_eq(evaluate_truth)
+}
+It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters.""",
+            criteria="""The response must be exactly the JSON format requested.
+It must correctly identify if the article confirms YES, NO, or INVALID."""
+        )
+        
+        result_json_str = result_json_str.replace("```json", "").replace("```", "").strip()
         
         try:
             result = json.loads(result_json_str)
