@@ -114,7 +114,8 @@ If the article confirms the event did NOT happen or the answer is undeniably No,
 
 Respond in JSON format:
 {
-    "resolved_status": "YES" // must be strictly "YES", "NO", or "INVALID"
+    "resolved_status": "YES", // must be strictly "YES", "NO", or "INVALID"
+    "reason": "Explain in one sentence why you chose this status based on the text provided."
 }
 It is mandatory that you respond only using the JSON format above, nothing else. Don't include any other words or characters.""",
             criteria="""The response must be exactly the JSON format requested.
@@ -126,11 +127,14 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         try:
             result = json.loads(result_json_str)
             resolved_answer = result.get("resolved_status", "INVALID")
+            reason = result.get("reason", "")
         except Exception:
             resolved_answer = "INVALID"
+            reason = "JSON parsing error"
             
         market["status"] = "RESOLVED"
         market["resolved_answer"] = resolved_answer
+        market["resolve_reason"] = reason
         
         # Distribute Payouts
         total_pool = market["total_yes"] + market["total_no"]
