@@ -209,7 +209,7 @@ function App() {
         <div className="nav-controls">
           {contractAddress && walletAddress && (
             <div className="wallet-badge">
-              <span style={{ color: '#a5b4fc' }}>{myBalance} GEN tokens</span>
+              <span style={{ color: '#a5b4fc' }}>{myBalance} GEN<span className="hide-mobile"> tokens</span></span>
               <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Request 5 GEN</button>
             </div>
           )}
