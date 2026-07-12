@@ -155,8 +155,7 @@ function App() {
       setStatusMessage(`Transaction sent! Waiting for validators (Hash: ${hash.slice(0, 8)}...)`);
       
       const receipt = await client.waitForTransactionReceipt({ 
-        hash,
-        status: 'FINALIZED' 
+        hash
       });
       
       console.log("Transaction Receipt:", receipt);
@@ -277,7 +276,9 @@ function App() {
             <PlayCircle color="#6366f1" size={28} /> Active Markets
           </div>
           
-          {!contractAddress ? (
+          {!walletAddress ? (
+            <div className="empty-state">Please connect your wallet to view active markets.</div>
+          ) : !contractAddress ? (
             <div className="empty-state">Please set the contract address to load markets.</div>
           ) : marketsList.length === 0 ? (
             <div className="empty-state">No markets found. Create one to get started!</div>
