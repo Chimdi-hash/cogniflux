@@ -126,7 +126,7 @@ function App() {
     }
   };
 
-  const executeTransaction = async (functionName, args, loadingMessage, successMessage) => {
+  const executeTransaction = async (functionName, args, loadingMessage, successMessage, value = undefined) => {
     if (!walletAddress || !isCorrectNetwork) {
       alert("Please connect your wallet to the correct network first.");
       return;
@@ -150,6 +150,7 @@ function App() {
         abi: ABI,
         functionName: functionName,
         args: args,
+        value: value,
       });
 
       setStatusMessage(`Transaction sent! Waiting for validators (Hash: ${hash.slice(0, 8)}...)`);
@@ -172,12 +173,11 @@ function App() {
     }
   };
 
-  const handleMint = () => executeTransaction('mint', [5n], 'Requesting 5 Test GEN...', 'Successfully received 5 Test GEN!');
   const handleCreateMarket = () => executeTransaction('create_market', [newMarketQuestion], 'Creating market...', 'Market created successfully!');
   const handleBet = (marketId, isYes) => {
     const amt = parseInt(betAmounts[marketId] || "0");
     if (amt <= 0) return alert("Enter a valid amount");
-    executeTransaction('bet', [marketId, isYes, BigInt(amt)], `Placing bet on ${isYes ? 'YES' : 'NO'}...`, 'Bet placed successfully!');
+    executeTransaction('bet', [marketId, isYes], `Placing bet on ${isYes ? 'YES' : 'NO'}...`, 'Bet placed successfully!', BigInt(amt) * 10n**18n);
   };
   const handleResolve = (marketId) => {
     const url = resolveUrls[marketId];
@@ -185,13 +185,7 @@ function App() {
     executeTransaction('resolve_market', [marketId, url], 'Validators are resolving market using AI...', 'Market resolved successfully!');
   };
 
-  const getBalance = () => {
-    if (!walletAddress || !protocolState?.balances) return 0;
-    const key = Object.keys(protocolState.balances).find(k => k.toLowerCase() === walletAddress.toLowerCase());
-    return key ? protocolState.balances[key] : 0;
-  };
-  const myBalance = getBalance();
-  const marketsList = Object.values(protocolState.markets).sort((a, b) => parseInt(b.id) - parseInt(a.id));
+  const marketsList = Object.values(protocolState?.markets || {}).sort((a, b) => parseInt(b.id) - parseInt(a.id));
 
   return (
     <div className="app-container">
@@ -207,13 +201,7 @@ function App() {
         </div>
 
         <div className="nav-controls">
-          {contractAddress && walletAddress && (
-            <div className="wallet-badge">
-              <span style={{ color: '#a5b4fc' }}>{myBalance} GEN<span className="hide-mobile"> tokens</span></span>
-              <button onClick={handleMint} disabled={isSubmitting} className="btn-mint">Request 5 GEN</button>
-            </div>
-          )}
-          
+
           {!walletAddress ? (
             <button onClick={connectWallet} className="btn-primary">
               <Wallet size={18} /> Connect Wallet

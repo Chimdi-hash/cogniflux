@@ -8,7 +8,6 @@ class Cogniflux(gl.Contract):
     def __init__(self):
         # A single robust JSON string to prevent any GenVM state serialization bugs with older versions.
         self.state_json = json.dumps({
-            "balances": {}, 
             "markets": {}, 
             "next_market_id": 1
         })
@@ -19,16 +18,7 @@ class Cogniflux(gl.Contract):
     def _save_state(self, state: dict):
         self.state_json = json.dumps(state)
 
-    @gl.public.write
-    def mint(self, amount: int) -> None:
-        if amount <= 0 or amount > 10000:
-            raise Exception("Invalid mint amount")
-        state = self._get_state()
-        sender = str(gl.message.sender_address)
-        
-        current_balance = state["balances"].get(sender, 0)
-        state["balances"][sender] = current_balance + amount
-        self._save_state(state)
+
 
     @gl.public.write
     def create_market(self, question: str) -> None:
@@ -50,8 +40,13 @@ class Cogniflux(gl.Contract):
         state["next_market_id"] += 1
         self._save_state(state)
 
-    @gl.public.write
-    def bet(self, market_id: str, is_yes: bool, amount: int) -> None:
+    @gl.public.write.payable
+    def bet(self, market_id: str, is_yes: bool) -> None:
+        amount_wei = int(gl.message.value)
+        amount = amount_wei // (10**18)
+        if amount <= 0:
+            raise Exception("Bet amount must be at least 1 GEN")
+
         state = self._get_state()
         sender = str(gl.message.sender_address)
         
@@ -61,13 +56,6 @@ class Cogniflux(gl.Contract):
         market = state["markets"][market_id]
         if market["status"] != "OPEN":
             raise Exception("Market is not open for betting")
-            
-        balance = state["balances"].get(sender, 0)
-        if balance < amount:
-            raise Exception("Insufficient balance")
-            
-        # Deduct balance
-        state["balances"][sender] = balance - amount
         
         # Record bet
         if is_yes:
@@ -139,22 +127,30 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         # Distribute Payouts
         total_pool = market["total_yes"] + market["total_no"]
         
+        def payout_user(address: str, amount_gen: int):
+            if amount_gen > 0:
+                try:
+                    payout_wei = amount_gen * (10**18)
+                    gl.get_contract_at(address).emit_transfer(value=u256(payout_wei), on='finalized')
+                except Exception:
+                    pass
+
         if resolved_answer == "YES" and market["total_yes"] > 0:
             for bettor, bet_amt in market["yes_bets"].items():
-                payout = int((bet_amt / market["total_yes"]) * total_pool)
-                state["balances"][bettor] = state["balances"].get(bettor, 0) + payout
+                payout = int((bet_amt * total_pool) // market["total_yes"])
+                payout_user(bettor, payout)
                 
         elif resolved_answer == "NO" and market["total_no"] > 0:
             for bettor, bet_amt in market["no_bets"].items():
-                payout = int((bet_amt / market["total_no"]) * total_pool)
-                state["balances"][bettor] = state["balances"].get(bettor, 0) + payout
+                payout = int((bet_amt * total_pool) // market["total_no"])
+                payout_user(bettor, payout)
                 
         else:
             # If INVALID, or the winning side had 0 bets, refund everyone
             for bettor, bet_amt in market["yes_bets"].items():
-                state["balances"][bettor] = state["balances"].get(bettor, 0) + bet_amt
+                payout_user(bettor, bet_amt)
             for bettor, bet_amt in market["no_bets"].items():
-                state["balances"][bettor] = state["balances"].get(bettor, 0) + bet_amt
+                payout_user(bettor, bet_amt)
                 
         self._save_state(state)
 
