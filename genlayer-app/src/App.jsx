@@ -22,7 +22,7 @@ const ABI = parseAbi([
 ]);
 
 function App() {
-  const [contractAddress, setContractAddress] = useState('0xbe04B91f669B6af718418cEC7Dd153f182b1F520');
+  const [contractAddress, setContractAddress] = useState('0x1Aac75dAe1ad69BA179E9a73762526b3c7E59953');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
