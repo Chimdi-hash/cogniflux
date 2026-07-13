@@ -87,7 +87,8 @@ class Cogniflux(gl.Contract):
 
         def get_input() -> str:
             try:
-                webpage_content = gl.nondet.web.get(resolution_url)
+                response = gl.nondet.web.get(resolution_url)
+                webpage_content = response.body.decode("utf-8")
                 if len(webpage_content) > 15000:
                     webpage_content = webpage_content[:15000] + "... (truncated)"
                 return f"""Prediction Market Question: "{market['question']}"
