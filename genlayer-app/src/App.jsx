@@ -15,15 +15,14 @@ const GENLAYER_NETWORK_CONFIG = {
 };
 
 const ABI = parseAbi([
-  "function mint(int256 amount)",
   "function create_market(string question)",
-  "function bet(string market_id, bool is_yes, int256 amount)",
+  "function bet(string market_id, bool is_yes) payable",
   "function resolve_market(string market_id, string resolution_url)",
   "function get_state() view returns (string)"
 ]);
 
 function App() {
-  const [contractAddress, setContractAddress] = useState('0xfe5Bf30f512F41Af98a405F212994e3d500f0Cc1');
+  const [contractAddress, setContractAddress] = useState('0x898721D7c35d8A857c90577e6FE77695d244961C');
   const [walletAddress, setWalletAddress] = useState('');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
