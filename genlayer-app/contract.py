@@ -1,6 +1,5 @@
 # { "Depends": "py-genlayer:1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6" }
 from genlayer import *
-from genlayer.std.nondet_fns import get_webpage
 import json
 
 class Cogniflux(gl.Contract):
@@ -88,7 +87,7 @@ class Cogniflux(gl.Contract):
 
         try:
             # Fetch off-chain article data
-            webpage_content = get_webpage(resolution_url)
+            webpage_content = gl.nondet.web.get(resolution_url)
             if len(webpage_content) > 15000:
                 webpage_content = webpage_content[:15000] + "... (truncated)"
         except Exception as e:
