@@ -86,8 +86,8 @@ class Cogniflux(gl.Contract):
                     pass
 
         try:
-            # Fetch off-chain article data
-            webpage_content = gl.nondet.web.get(resolution_url)
+            # Fetch off-chain article data using a headless browser to bypass basic bot protection
+            webpage_content = gl.nondet.web.render(resolution_url, mode="html")
             if len(webpage_content) > 15000:
                 webpage_content = webpage_content[:15000] + "... (truncated)"
         except Exception as e:
