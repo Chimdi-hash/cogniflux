@@ -77,15 +77,32 @@ class Cogniflux(gl.Contract):
         if market["status"] != "OPEN":
             raise Exception("Market already resolved")
 
-        def get_input() -> str:
-            try:
-                # Fetch off-chain article data
-                webpage_content = gl.get_webpage(resolution_url, mode="text")
-                if len(webpage_content) > 15000:
-                    webpage_content = webpage_content[:15000] + "... (truncated)"
-            except Exception as e:
-                webpage_content = f"Failed to load webpage. Error: {str(e)}"
+        def payout_user(address: str, amount_gen: int):
+            if amount_gen > 0:
+                try:
+                    payout_wei = amount_gen * (10**18)
+                    gl.get_contract_at(address).emit_transfer(value=u256(payout_wei), on='finalized')
+                except Exception:
+                    pass
 
+        try:
+            # Fetch off-chain article data (removed mode='text' as it might cause TypeError)
+            webpage_content = gl.get_webpage(resolution_url)
+            if len(webpage_content) > 15000:
+                webpage_content = webpage_content[:15000] + "... (truncated)"
+        except Exception as e:
+            # Bypass AI on fetch error to surface the exact exception
+            market["status"] = "RESOLVED"
+            market["resolved_answer"] = "INVALID"
+            market["resolve_reason"] = f"Fetch Error: {str(e)}"
+            for bettor, bet_amt in market["yes_bets"].items():
+                payout_user(bettor, bet_amt)
+            for bettor, bet_amt in market["no_bets"].items():
+                payout_user(bettor, bet_amt)
+            self._save_state(state)
+            return
+
+        def get_input() -> str:
             return f"""Prediction Market Question: "{market['question']}"
 
 News Article Content:
@@ -126,14 +143,6 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         
         # Distribute Payouts
         total_pool = market["total_yes"] + market["total_no"]
-        
-        def payout_user(address: str, amount_gen: int):
-            if amount_gen > 0:
-                try:
-                    payout_wei = amount_gen * (10**18)
-                    gl.get_contract_at(address).emit_transfer(value=u256(payout_wei), on='finalized')
-                except Exception:
-                    pass
 
         if resolved_answer == "YES" and market["total_yes"] > 0:
             for bettor, bet_amt in market["yes_bets"].items():
