@@ -85,34 +85,23 @@ class Cogniflux(gl.Contract):
                 except Exception:
                     pass
 
-        try:
-            # Fetch off-chain article data using a headless browser to bypass basic bot protection
-            webpage_content = gl.nondet.web.render(resolution_url, mode="html")
-            if len(webpage_content) > 15000:
-                webpage_content = webpage_content[:15000] + "... (truncated)"
-        except Exception as e:
-            # Bypass AI on fetch error to surface the exact exception
-            market["status"] = "RESOLVED"
-            market["resolved_answer"] = "INVALID"
-            market["resolve_reason"] = f"Fetch Error: {str(e)}"
-            for bettor, bet_amt in market["yes_bets"].items():
-                payout_user(bettor, bet_amt)
-            for bettor, bet_amt in market["no_bets"].items():
-                payout_user(bettor, bet_amt)
-            self._save_state(state)
-            return
-
         def get_input() -> str:
-            return f"""Prediction Market Question: "{market['question']}"
-
+            try:
+                webpage_content = gl.nondet.web.get(resolution_url)
+                if len(webpage_content) > 15000:
+                    webpage_content = webpage_content[:15000] + "... (truncated)"
+                return f"""Prediction Market Question: "{market['question']}"
 News Article Content:
 {webpage_content}"""
+            except Exception as e:
+                return f"ERROR: Fetch failed with: {str(e)}"
 
         # Consensus algorithm
         result_json_str = gl.eq_principle.prompt_non_comparative(
             get_input,
             task="""You are a highly analytical decentralized oracle. Your job is to determine the factual outcome of a prediction market question based ONLY on the provided news article text.
 First, check if the text appears to be a legitimate news article or official source. 
+If the article content starts with "ERROR:", you must output "INVALID", and your 'reason' must be the EXACT error text provided.
 If it is completely irrelevant, spam, or fails to directly answer the question, output "INVALID".
 If the article confirms the event happened or the answer to the question is undeniably Yes, output "YES".
 If the article confirms the event did NOT happen or the answer is undeniably No, output "NO".
