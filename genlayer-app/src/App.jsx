@@ -314,7 +314,7 @@ function App() {
                         <div className="resolve-controls">
                           <input
                             type="text"
-                            placeholder="News URL (e.g. https://reuters.com/...)"
+                            placeholder="News URL (e.g. https://bbc.com/... avoid Wikipedia)"
                             value={resolveUrls[market.id] || ''}
                             onChange={(e) => setResolveUrls({...resolveUrls, [market.id]: e.target.value})}
                             className="input-field"

@@ -83,8 +83,8 @@ class Cogniflux(gl.Contract):
                 webpage_content = gl.get_webpage(resolution_url, mode="text")
                 if len(webpage_content) > 15000:
                     webpage_content = webpage_content[:15000] + "... (truncated)"
-            except Exception:
-                webpage_content = "Failed to load webpage."
+            except Exception as e:
+                webpage_content = f"Failed to load webpage. Error: {str(e)}"
 
             return f"""Prediction Market Question: "{market['question']}"
 
