@@ -345,23 +345,38 @@ function App() {
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
                         <CheckCircle size={36} className={`result-${market.resolved_answer}`} style={{ opacity: 0.5 }} />
                         
-                        {(market.yes_bets?.[walletAddress] || market.no_bets?.[walletAddress]) && (
-                          <div style={{ marginTop: '10px' }}>
-                            {market.claimable?.[walletAddress] > 0 ? (
-                              <button onClick={() => handleClaim(market.id)} disabled={isSubmitting} className="btn-primary" style={{ background: '#10b981', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: 'white' }}>
-                                Claim Reward
-                              </button>
-                            ) : market.claimed?.includes(walletAddress) ? (
-                              <span style={{ color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                <CheckCircle size={16} /> Reward Claimed
-                              </span>
-                            ) : (
-                              <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                🔥 Bet Burned
-                              </span>
-                            )}
-                          </div>
-                        )}
+                        {(() => {
+                          const userAddress = walletAddress?.toLowerCase();
+                          if (!userAddress) return null;
+                          
+                          const hasBet = Object.keys(market.yes_bets || {}).some(addr => addr.toLowerCase() === userAddress) ||
+                                         Object.keys(market.no_bets || {}).some(addr => addr.toLowerCase() === userAddress);
+                          
+                          if (!hasBet) return null;
+                          
+                          const claimableAmount = Object.entries(market.claimable || {})
+                            .find(([addr, amt]) => addr.toLowerCase() === userAddress)?.[1] || 0;
+                            
+                          const hasClaimed = (market.claimed || []).some(addr => addr.toLowerCase() === userAddress);
+                          
+                          return (
+                            <div style={{ marginTop: '10px' }}>
+                              {claimableAmount > 0 ? (
+                                <button onClick={() => handleClaim(market.id)} disabled={isSubmitting} className="btn-primary" style={{ background: '#10b981', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: 'white' }}>
+                                  Claim Reward
+                                </button>
+                              ) : hasClaimed ? (
+                                <span style={{ color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  <CheckCircle size={16} /> Reward Claimed
+                                </span>
+                              ) : (
+                                <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                  🔥 Bet Burned
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </div>
                   )}
