@@ -363,11 +363,11 @@ function App() {
                             <div style={{ marginTop: '10px' }}>
                               {claimableAmount > 0 ? (
                                 <button onClick={() => handleClaim(market.id)} disabled={isSubmitting} className="btn-primary" style={{ background: '#10b981', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: 'white' }}>
-                                  Claim Reward
+                                  Claim {claimableAmount} GEN Reward
                                 </button>
                               ) : hasClaimed ? (
                                 <span style={{ color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                                  <CheckCircle size={16} /> Reward Claimed
+                                  <CheckCircle size={16} /> {market.yes_bets?.[Object.keys(market.yes_bets || {}).find(k => k.toLowerCase() === userAddress)] || market.no_bets?.[Object.keys(market.no_bets || {}).find(k => k.toLowerCase() === userAddress)]} GEN Claimed
                                 </span>
                               ) : (
                                 <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
