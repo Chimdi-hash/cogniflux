@@ -2,6 +2,11 @@
 from genlayer import *
 import json
 
+@gl.evm.contract_interface
+class _Recipient:
+    class View: pass
+    class Write: pass
+
 class Cogniflux(gl.Contract):
     state_json: str
 
@@ -81,7 +86,7 @@ class Cogniflux(gl.Contract):
             if amount_gen > 0:
                 try:
                     payout_wei = amount_gen * (10**18)
-                    gl.get_contract_at(Address(address)).emit_transfer(value=u256(payout_wei), on='finalized')
+                    _Recipient(Address(address)).emit(value=u256(payout_wei), on='finalized')
                 except Exception:
                     pass
 
