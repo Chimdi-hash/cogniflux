@@ -81,7 +81,7 @@ class Cogniflux(gl.Contract):
             if amount_gen > 0:
                 try:
                     payout_wei = amount_gen * (10**18)
-                    gl.get_contract_at(address).emit_transfer(value=u256(payout_wei), on='finalized')
+                    gl.get_contract_at(Address(address)).emit_transfer(value=u256(payout_wei), on='finalized')
                 except Exception:
                     pass
 
