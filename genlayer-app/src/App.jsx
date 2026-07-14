@@ -18,6 +18,7 @@ const ABI = parseAbi([
   "function create_market(string question)",
   "function bet(string market_id, bool is_yes) payable",
   "function resolve_market(string market_id, string resolution_url)",
+  "function claim_reward(string market_id)",
   "function get_state() view returns (string)"
 ]);
 
@@ -183,6 +184,9 @@ function App() {
     if (!url) return alert("Enter a valid news URL for resolution");
     executeTransaction('resolve_market', [marketId, url], 'Validators are resolving market using AI...', 'Market resolved successfully!');
   };
+  const handleClaim = (marketId) => {
+    executeTransaction('claim_reward', [marketId], 'Claiming reward...', 'Reward claimed successfully!');
+  };
 
   const marketsList = Object.values(protocolState?.markets || {}).sort((a, b) => parseInt(b.id) - parseInt(a.id));
 
@@ -325,7 +329,7 @@ function App() {
                       </div>
                     </div>
                   ) : (
-                    <div className="resolved-result">
+                    <div className="resolved-result" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
                         <div style={{ fontSize: '0.9rem', color: '#94a3b8', marginBottom: '5px' }}>Final Result</div>
                         <div className={`result-answer result-${market.resolved_answer}`}>
@@ -337,7 +341,28 @@ function App() {
                           </div>
                         )}
                       </div>
-                      <CheckCircle size={36} className={`result-${market.resolved_answer}`} style={{ opacity: 0.5 }} />
+                      
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                        <CheckCircle size={36} className={`result-${market.resolved_answer}`} style={{ opacity: 0.5 }} />
+                        
+                        {(market.yes_bets?.[walletAddress] || market.no_bets?.[walletAddress]) && (
+                          <div style={{ marginTop: '10px' }}>
+                            {market.claimable?.[walletAddress] > 0 ? (
+                              <button onClick={() => handleClaim(market.id)} disabled={isSubmitting} className="btn-primary" style={{ background: '#10b981', border: 'none', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', color: 'white' }}>
+                                Claim Reward
+                              </button>
+                            ) : market.claimed?.includes(walletAddress) ? (
+                              <span style={{ color: '#10b981', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                <CheckCircle size={16} /> Reward Claimed
+                              </span>
+                            ) : (
+                              <span style={{ color: '#ef4444', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                🔥 Bet Burned
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
