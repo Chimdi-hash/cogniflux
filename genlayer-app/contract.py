@@ -179,7 +179,7 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         
         try:
             payout_wei = claimable_amount * (10**18)
-            gl.get_contract_at(Address(sender)).emit_transfer(value=u256(payout_wei), on='finalized')
+            _Recipient(Address(sender)).emit(value=u256(payout_wei), on='finalized')
         except Exception:
             pass
 
