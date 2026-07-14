@@ -139,12 +139,12 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
 
         if resolved_answer == "YES" and market["total_yes"] > 0:
             for bettor, bet_amt in market["yes_bets"].items():
-                payout = int((bet_amt * total_pool) // market["total_yes"])
+                payout = bet_amt * 2
                 add_claimable(bettor, payout)
                 
         elif resolved_answer == "NO" and market["total_no"] > 0:
             for bettor, bet_amt in market["no_bets"].items():
-                payout = int((bet_amt * total_pool) // market["total_no"])
+                payout = bet_amt * 2
                 add_claimable(bettor, payout)
                 
         else:
