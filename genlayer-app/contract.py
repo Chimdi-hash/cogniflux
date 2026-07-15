@@ -173,12 +173,9 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         market.setdefault("claimed", []).append(sender)
         self._save_state(state)
         
-        try:
-            payout_wei = claimable_amount * (10**18)
-            import genlayer.chain
-            genlayer.chain.Account(Address(sender)).emit_transfer(value=u256(payout_wei), on='finalized')
-        except Exception:
-            pass
+        payout_wei = claimable_amount * (10**18)
+        import genlayer.chain
+        genlayer.chain.Account(Address(sender)).emit_transfer(value=u256(payout_wei), on='finalized')
 
     @gl.public.view
     def get_state(self) -> str:
