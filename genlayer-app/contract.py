@@ -2,10 +2,6 @@
 from genlayer import *
 import json
 
-@gl.evm.contract_interface
-class _Recipient:
-    class View: pass
-    class Write: pass
 
 class Cogniflux(gl.Contract):
     state_json: str
@@ -179,7 +175,8 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         
         try:
             payout_wei = claimable_amount * (10**18)
-            _Recipient(Address(sender)).emit(value=u256(payout_wei), on='finalized')
+            import genlayer.chain
+            genlayer.chain.Account(Address(sender)).emit_transfer(value=u256(payout_wei), on='finalized')
         except Exception:
             pass
 
