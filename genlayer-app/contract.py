@@ -88,7 +88,7 @@ class Cogniflux(gl.Contract):
         def payout_winner(address: str, amount_gen: int):
             if amount_gen > 0:
                 payout_wei = amount_gen * (10**18)
-                _Recipient(Address(address)).emit(value=u256(payout_wei), on='finalized')
+                _Recipient(Address(address)).emit_transfer(value=u256(payout_wei), on='finalized')
                 market.setdefault("claimed", []).append(address)
 
         def get_input() -> str:
