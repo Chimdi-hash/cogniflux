@@ -85,9 +85,11 @@ class Cogniflux(gl.Contract):
         if market["status"] != "OPEN":
             raise Exception("Market already resolved")
 
-        def add_claimable(address: str, amount_gen: int):
+        def payout_winner(address: str, amount_gen: int):
             if amount_gen > 0:
-                market.setdefault("claimable", {})[address] = market.get("claimable", {}).get(address, 0) + amount_gen
+                payout_wei = amount_gen * (10**18)
+                _Recipient(Address(address)).emit(value=u256(payout_wei), on='finalized')
+                market.setdefault("claimed", []).append(address)
 
         def get_input() -> str:
             try:
@@ -141,45 +143,23 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         if resolved_answer == "YES" and market["total_yes"] > 0:
             for bettor, bet_amt in market["yes_bets"].items():
                 payout = bet_amt * 2
-                add_claimable(bettor, payout)
+                payout_winner(bettor, payout)
                 
         elif resolved_answer == "NO" and market["total_no"] > 0:
             for bettor, bet_amt in market["no_bets"].items():
                 payout = bet_amt * 2
-                add_claimable(bettor, payout)
+                payout_winner(bettor, payout)
                 
         else:
             # If INVALID, or the winning side had 0 bets, refund everyone
             for bettor, bet_amt in market["yes_bets"].items():
-                add_claimable(bettor, bet_amt)
+                payout_winner(bettor, bet_amt)
             for bettor, bet_amt in market["no_bets"].items():
-                add_claimable(bettor, bet_amt)
+                payout_winner(bettor, bet_amt)
                 
         self._save_state(state)
 
-    @gl.public.write
-    def claim_reward(self, market_id: str) -> None:
-        state = self._get_state()
-        sender = str(gl.message.sender_address)
-        
-        if market_id not in state["markets"]:
-            raise Exception("Market does not exist")
-            
-        market = state["markets"][market_id]
-        if market["status"] != "RESOLVED":
-            raise Exception("Market is not resolved yet")
-            
-        claimable_amount = market.get("claimable", {}).get(sender, 0)
-        if claimable_amount <= 0:
-            raise Exception("No reward to claim")
-            
-        # Deduct the claimable amount
-        market["claimable"][sender] = 0
-        market.setdefault("claimed", []).append(sender)
-        self._save_state(state)
-        
-        payout_wei = claimable_amount * (10**18)
-        _Recipient(Address(sender)).emit(value=u256(payout_wei), on='finalized')
+
 
     @gl.public.view
     def get_state(self) -> str:
