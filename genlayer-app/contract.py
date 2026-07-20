@@ -140,18 +140,18 @@ It must correctly identify if the article confirms YES, NO, or INVALID."""
         # Distribute Payouts
         total_pool = market["total_yes"] + market["total_no"]
 
-        if resolved_answer == "YES" and market["total_yes"] > 0:
+        if resolved_answer == "YES":
             for bettor, bet_amt in market["yes_bets"].items():
                 payout = bet_amt * 2
                 payout_winner(bettor, payout)
                 
-        elif resolved_answer == "NO" and market["total_no"] > 0:
+        elif resolved_answer == "NO":
             for bettor, bet_amt in market["no_bets"].items():
                 payout = bet_amt * 2
                 payout_winner(bettor, payout)
                 
         else:
-            # If INVALID, or the winning side had 0 bets, refund everyone
+            # If INVALID, refund everyone
             for bettor, bet_amt in market["yes_bets"].items():
                 payout_winner(bettor, bet_amt)
             for bettor, bet_amt in market["no_bets"].items():
