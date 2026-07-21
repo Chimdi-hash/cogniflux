@@ -533,6 +533,11 @@ textarea.input-field {
     flex-direction: column;
   }
 }
+
+.hide-desktop {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .navbar {
     padding: 10px 15px;
@@ -619,9 +624,7 @@ textarea.input-field {
   }
 }
 
-.hide-desktop {
-  display: none !important;
-}
+
 
 .trending-glow {
   box-shadow: 0 0 25px rgba(229, 46, 113, 0.4);
