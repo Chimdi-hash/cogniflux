@@ -536,27 +536,56 @@ textarea.input-field {
 @media (max-width: 768px) {
   .navbar {
     padding: 10px 15px;
-    height: auto;
-    min-height: 70px;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-  .nav-controls {
-    width: 100%;
+    height: 70px;
+    flex-wrap: nowrap;
     justify-content: space-between;
   }
-  .wallet-badge {
-    width: 100%;
-    justify-content: space-between;
-    padding: 8px 10px;
-    font-size: 0.8rem;
-    gap: 5px;
+  .nav-brand {
+    width: auto;
+    justify-content: flex-start;
+    gap: 8px;
   }
+  .hide-desktop { 
+    display: block !important; 
+  }
+  .hide-mobile { 
+    display: none !important; 
+  }
+  .mobile-menu-btn {
+    background: transparent;
+    border: none;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 10px;
+    margin-right: -10px;
+  }
+  .mobile-drawer {
+    position: fixed;
+    top: 70px;
+    left: 0;
+    right: 0;
+    background: var(--bg-panel);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 15px;
+    z-index: 99;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+    backdrop-filter: blur(15px);
+    overflow: hidden;
+  }
+  .mobile-wallet-badge {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+  
+  /* Rest of mobile rules */
   .brand-title {
     font-size: 1.1rem;
   }
   .brand-subtitle {
-    display: none; /* Hide subtitle to make header concise */
+    display: none; 
   }
   .brand-icon {
     width: 32px;
@@ -565,11 +594,6 @@ textarea.input-field {
   .brand-icon svg {
     width: 16px;
     height: 16px;
-  }
-  .nav-brand {
-    gap: 8px;
-    width: 100%;
-    justify-content: center;
   }
   .btn-mint {
     padding: 6px 10px;
@@ -595,8 +619,8 @@ textarea.input-field {
   }
 }
 
-@media (max-width: 768px) {
-  .hide-mobile { display: none; }
+.hide-desktop {
+  display: none !important;
 }
 
 .trending-glow {

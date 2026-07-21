@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, LogOut, CheckCircle, AlertTriangle, Activity, PlusCircle, PlayCircle, User, PieChart, TrendingUp, Award } from 'lucide-react';
+import { Wallet, LogOut, CheckCircle, AlertTriangle, Activity, PlusCircle, PlayCircle, User, PieChart, TrendingUp, Award, Menu, X } from 'lucide-react';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 import { parseAbi } from 'viem';
@@ -42,6 +42,7 @@ function App() {
   const [resolveUrls, setResolveUrls] = useState({});
   const [activeTab, setActiveTab] = useState('ALL');
   const [showDashboard, setShowDashboard] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (window.ethereum) {
@@ -257,6 +258,47 @@ function App() {
     return acc + payout;
   }, 0);
 
+  const renderNavControls = (isMobile = false) => {
+    if (!walletAddress) {
+      return (
+        <button onClick={connectWallet} className="btn-primary" style={isMobile ? { width: '100%', justifyContent: 'center' } : {}}>
+          <Wallet size={18} /> Connect Wallet
+        </button>
+      );
+    }
+    if (!isCorrectNetwork) {
+      return (
+        <button onClick={switchNetwork} className="btn-primary" style={{ background: '#f43f5e', color: 'white', ...(isMobile ? { width: '100%', justifyContent: 'center' } : {}) }}>
+          <AlertTriangle size={18} /> Switch to StudioNet
+        </button>
+      );
+    }
+    return (
+      <div className={`wallet-badge ${isMobile ? 'mobile-wallet-badge' : ''}`} style={{ gap: '15px', ...(isMobile ? { flexDirection: 'column', alignItems: 'stretch', width: '100%', border: 'none', background: 'transparent', padding: '0' } : {}) }}>
+        <span style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'space-between' : 'flex-start', gap: '8px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
+            {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+          </span>
+          <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '0.85rem' }}>
+            {walletBalance} GEN
+          </span>
+        </span>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            onClick={() => { setShowDashboard(true); setIsMobileMenuOpen(false); }} 
+            style={{ flex: 1, background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.5)', color: 'white', padding: '10px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontWeight: 'bold' }}
+          >
+            <PieChart size={16} /> Dashboard
+          </button>
+          <button onClick={() => { setWalletAddress(''); setIsMobileMenuOpen(false); }} style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444', padding: '10px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="app-container">
       <nav className="navbar">
@@ -270,36 +312,30 @@ function App() {
           </div>
         </div>
 
-        <div className="nav-controls">
-
-          {!walletAddress ? (
-            <button onClick={connectWallet} className="btn-primary">
-              <Wallet size={18} /> Connect Wallet
-            </button>
-          ) : !isCorrectNetwork ? (
-            <button onClick={switchNetwork} className="btn-primary" style={{ background: '#f43f5e', color: 'white' }}>
-              <AlertTriangle size={18} /> Switch to StudioNet
-            </button>
-          ) : (
-            <div className="wallet-badge" style={{ gap: '15px' }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '0.85rem' }}>
-                  {walletBalance} GEN
-                </span>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </span>
-              <button 
-                onClick={() => setShowDashboard(true)} 
-                style={{ background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.5)', color: 'white', padding: '4px 8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
-              >
-                <PieChart size={14} /> Dashboard
-              </button>
-              <LogOut size={16} onClick={() => setWalletAddress('')} style={{ cursor: 'pointer', color: '#94a3b8' }} />
-            </div>
-          )}
+        <div className="nav-controls hide-mobile">
+          {renderNavControls(false)}
         </div>
+
+        <button 
+          className="mobile-menu-btn hide-desktop" 
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+          {isMobileMenuOpen ? <X size={24} color="white" /> : <Menu size={24} color="white" />}
+        </button>
       </nav>
+
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mobile-drawer hide-desktop"
+          >
+            {renderNavControls(true)}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <main className="main-content">
         <AnimatePresence>
