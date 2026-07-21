@@ -519,13 +519,6 @@ textarea.input-field {
   .resolve-controls {
     flex-direction: column;
   }
-  .btn-resolve {
-    padding: 12px;
-    width: 100%;
-  }
-  .toast {
-    top: 80px;
-    right: 15px;
 }
 @media (max-width: 768px) {
   .navbar {
@@ -578,12 +571,6 @@ textarea.input-field {
   .btn-resolve {
     padding: 12px;
     width: 100%;
-  }
-  .toast {
-    top: 80px;
-    right: 15px;
-    left: 15px;
-    justify-content: center;
   }
 }
 
