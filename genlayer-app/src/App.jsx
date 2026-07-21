@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Wallet, LogOut, CheckCircle, AlertTriangle, Activity, PlusCircle, PlayCircle } from 'lucide-react';
+import { Wallet, LogOut, CheckCircle, AlertTriangle, Activity, PlusCircle, PlayCircle, User, PieChart, TrendingUp, Award } from 'lucide-react';
 import { createClient } from 'genlayer-js';
 import { studionet } from 'genlayer-js/chains';
 import { parseAbi } from 'viem';
@@ -40,6 +40,8 @@ function App() {
   const [newMarketQuestion, setNewMarketQuestion] = useState('');
   const [betAmounts, setBetAmounts] = useState({});
   const [resolveUrls, setResolveUrls] = useState({});
+  const [activeTab, setActiveTab] = useState('ALL');
+  const [showDashboard, setShowDashboard] = useState(false);
 
   useEffect(() => {
     if (window.ethereum) {
@@ -51,7 +53,18 @@ function App() {
     let intervalId;
     if (contractAddress) {
       fetchState();
-      intervalId = setInterval(fetchState, 5000);
+      intervalId = setInterval(async () => {
+        fetchState();
+        if (window.ethereum) {
+          try {
+            const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+            if (accounts && accounts.length > 0) {
+              const hexBalance = await window.ethereum.request({ method: 'eth_getBalance', params: [accounts[0], 'latest'] });
+              setWalletBalance((parseInt(hexBalance, 16) / 10**18).toFixed(2));
+            }
+          } catch(e) {}
+        }
+      }, 5000);
     }
     
     return () => {
@@ -75,15 +88,6 @@ function App() {
         functionName: 'get_state' 
       });
       setProtocolState(JSON.parse(stateStr));
-      
-      if (walletAddress && window.ethereum) {
-        const hexBalance = await window.ethereum.request({ 
-          method: 'eth_getBalance', 
-          params: [walletAddress, 'latest'] 
-        });
-        const balanceInGEN = (parseInt(hexBalance, 16) / 10**18).toFixed(2);
-        setWalletBalance(balanceInGEN);
-      }
     } catch (err) {
       console.error("Failed to fetch state:", err);
     }
@@ -203,7 +207,55 @@ function App() {
   };
 
 
-  const marketsList = Object.values(protocolState?.markets || {}).sort((a, b) => parseInt(b.id) - parseInt(a.id));
+  const allMarkets = Object.values(protocolState?.markets || {}).sort((a, b) => parseInt(b.id) - parseInt(a.id));
+  
+  const marketsList = allMarkets.filter(market => {
+    if (activeTab === 'ALL') return true;
+    if (activeTab === 'OPEN') return market.status === 'OPEN';
+    if (activeTab === 'RESOLVED') return market.status === 'RESOLVED';
+    return true;
+  });
+  
+  const totalTVL = Object.values(protocolState?.markets || {}).reduce((acc, market) => {
+    return acc + parseInt(market.total_yes || 0) + parseInt(market.total_no || 0);
+  }, 0);
+  
+  const maxPool = Math.max(...allMarkets.filter(m => m.status === 'OPEN').map(m => parseInt(m.total_yes || 0) + parseInt(m.total_no || 0)), 0);
+
+  // Compute dashboard metrics
+  const userAddress = walletAddress?.toLowerCase() || '';
+  const myBets = allMarkets.filter(m => {
+    return Object.keys(m.yes_bets || {}).some(k => k.toLowerCase() === userAddress) ||
+           Object.keys(m.no_bets || {}).some(k => k.toLowerCase() === userAddress);
+  });
+  
+  const totalWagered = myBets.reduce((acc, m) => {
+    const yesBet = Object.entries(m.yes_bets || {}).find(([k]) => k.toLowerCase() === userAddress);
+    const noBet = Object.entries(m.no_bets || {}).find(([k]) => k.toLowerCase() === userAddress);
+    return acc + (yesBet ? parseInt(yesBet[1]) : 0) + (noBet ? parseInt(noBet[1]) : 0);
+  }, 0);
+  
+  const marketsResolved = myBets.filter(m => m.status === 'RESOLVED' && m.resolved_answer !== 'INVALID');
+  const wonMarkets = marketsResolved.filter(m => {
+    if (m.resolved_answer === 'YES' && Object.keys(m.yes_bets || {}).some(k => k.toLowerCase() === userAddress)) return true;
+    if (m.resolved_answer === 'NO' && Object.keys(m.no_bets || {}).some(k => k.toLowerCase() === userAddress)) return true;
+    return false;
+  });
+  const winRate = marketsResolved.length > 0 ? Math.round((wonMarkets.length / marketsResolved.length) * 100) : 0;
+  
+  const totalWon = wonMarkets.reduce((acc, m) => {
+    const totalPool = parseInt(m.total_yes || 0) + parseInt(m.total_no || 0);
+    const winningPool = m.resolved_answer === 'YES' ? parseInt(m.total_yes || 0) : parseInt(m.total_no || 0);
+    
+    const myBetEntry = m.resolved_answer === 'YES' 
+      ? Object.entries(m.yes_bets || {}).find(([k]) => k.toLowerCase() === userAddress)
+      : Object.entries(m.no_bets || {}).find(([k]) => k.toLowerCase() === userAddress);
+      
+    const myBet = myBetEntry ? parseInt(myBetEntry[1]) : 0;
+    
+    const payout = winningPool > 0 ? Math.floor((myBet * totalPool) / winningPool) : 0;
+    return acc + payout;
+  }, 0);
 
   return (
     <div className="app-container">
@@ -237,6 +289,12 @@ function App() {
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
               </span>
+              <button 
+                onClick={() => setShowDashboard(true)} 
+                style={{ background: 'rgba(99, 102, 241, 0.2)', border: '1px solid rgba(99, 102, 241, 0.5)', color: 'white', padding: '4px 8px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px' }}
+              >
+                <PieChart size={14} /> Dashboard
+              </button>
               <LogOut size={16} onClick={() => setWalletAddress('')} style={{ cursor: 'pointer', color: '#94a3b8' }} />
             </div>
           )}
@@ -278,11 +336,40 @@ function App() {
               Deploy Market
             </button>
           </div>
+          
+          <div className="glass-panel" style={{ marginTop: '20px', background: 'linear-gradient(145deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9))', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+            <div className="panel-header">
+              <Activity size={20} color="#10b981" /> Global TVL
+            </div>
+            <div className="panel-desc">Total GEN Wagered Across All Markets</div>
+            <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#10b981', marginTop: '10px', textShadow: '0 0 20px rgba(16, 185, 129, 0.3)' }}>
+              {totalTVL} GEN
+            </div>
+          </div>
         </div>
 
         <div className="markets-container">
-          <div className="section-title">
-            <PlayCircle color="#6366f1" size={28} /> Active Markets
+          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div><PlayCircle color="#6366f1" size={28} /> Active Markets</div>
+            <div className="tab-controls" style={{ display: 'flex', gap: '10px' }}>
+              {['ALL', 'OPEN', 'RESOLVED'].map(tab => (
+                <button 
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    background: activeTab === tab ? '#6366f1' : 'transparent',
+                    border: '1px solid #6366f1',
+                    color: 'white',
+                    padding: '5px 15px',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
           </div>
           
           {!walletAddress ? (
@@ -295,13 +382,21 @@ function App() {
             marketsList.map((market) => {
               const totalPool = parseInt(market.total_yes) + parseInt(market.total_no);
               const yesPercent = totalPool > 0 ? Math.round((parseInt(market.total_yes) / totalPool) * 100) : 50;
+              const isTrending = market.status === 'OPEN' && totalPool > 0 && totalPool === maxPool;
               
               return (
-                <div key={market.id} className="market-card">
+                <div key={market.id} className={`market-card ${isTrending ? 'trending-glow' : ''}`}>
                   <div className="market-header">
                     <div className="market-question">{market.question}</div>
-                    <div className={`status-badge ${market.status === 'OPEN' ? 'status-live' : 'status-resolved'}`}>
-                      {market.status}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {isTrending && (
+                        <div className="status-badge" style={{ background: 'linear-gradient(90deg, #ff8a00, #e52e71)', border: 'none', color: 'white' }}>
+                          Trending 🔥
+                        </div>
+                      )}
+                      <div className={`status-badge ${market.status === 'OPEN' ? 'status-live' : 'status-resolved'}`}>
+                        {market.status}
+                      </div>
                     </div>
                   </div>
 
@@ -312,8 +407,8 @@ function App() {
                       <span className="text-no">No {100 - yesPercent}%</span>
                     </div>
                     <div className="progress-bar-container">
-                      <div className="progress-yes" style={{ width: `${yesPercent}%` }} />
-                      <div className="progress-no" style={{ width: `${100 - yesPercent}%` }} />
+                      <div className={`progress-yes ${isTrending ? 'pulse-anim' : ''}`} style={{ width: `${yesPercent}%` }} />
+                      <div className={`progress-no ${isTrending ? 'pulse-anim' : ''}`} style={{ width: `${100 - yesPercent}%` }} />
                     </div>
                   </div>
 
@@ -402,6 +497,44 @@ function App() {
           )}
         </div>
       </main>
+      
+      <AnimatePresence>
+        {showDashboard && (
+          <div className="modal-overlay" onClick={() => setShowDashboard(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.9, y: 20 }} 
+              onClick={e => e.stopPropagation()}
+              className="glass-panel" 
+              style={{ width: '90%', maxWidth: '500px', maxHeight: '80vh', overflowY: 'auto' }}
+            >
+              <div className="panel-header" style={{ justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <User color="#10b981" size={24} /> 
+                  <span style={{ fontSize: '1.5rem', fontWeight: 'bold' }}>My Dashboard</span>
+                </div>
+                <button onClick={() => setShowDashboard(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
+              </div>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
+                <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '8px' }}><Wallet size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }}/>Wagered</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'white' }}>{totalWagered} GEN</div>
+                </div>
+                <div style={{ background: 'rgba(16, 185, 129, 0.1)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '8px' }}><Award size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }}/>Won</div>
+                  <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#10b981' }}>{totalWon} GEN</div>
+                </div>
+              </div>
+              <div style={{ background: 'rgba(168, 85, 247, 0.1)', padding: '20px', borderRadius: '16px', textAlign: 'center', marginTop: '15px', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '8px' }}><TrendingUp size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }}/>Win Rate</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#a855f7' }}>{winRate}%</div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -526,6 +526,62 @@ textarea.input-field {
   .toast {
     top: 80px;
     right: 15px;
+}
+@media (max-width: 768px) {
+  .navbar {
+    padding: 0 15px;
+    height: 70px;
+  }
+  .brand-title {
+    font-size: 1.1rem;
+  }
+  .brand-subtitle {
+    display: none; /* Hide subtitle to make header concise */
+  }
+  .brand-icon {
+    width: 32px;
+    height: 32px;
+  }
+  .brand-icon svg {
+    width: 16px;
+    height: 16px;
+  }
+  .nav-brand {
+    gap: 8px;
+  }
+  .nav-controls {
+    gap: 8px;
+  }
+  .wallet-badge {
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    gap: 5px;
+  }
+  .btn-mint {
+    padding: 6px 10px;
+    font-size: 0.7rem;
+  }
+  .btn-primary {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+  .main-content {
+    grid-template-columns: 1fr;
+    padding: 100px 15px 40px;
+  }
+  .betting-controls {
+    flex-direction: column;
+  }
+  .resolve-controls {
+    flex-direction: column;
+  }
+  .btn-resolve {
+    padding: 12px;
+    width: 100%;
+  }
+  .toast {
+    top: 80px;
+    right: 15px;
     left: 15px;
     justify-content: center;
   }
@@ -533,4 +589,19 @@ textarea.input-field {
 
 @media (max-width: 768px) {
   .hide-mobile { display: none; }
+}
+
+.trending-glow {
+  box-shadow: 0 0 25px rgba(229, 46, 113, 0.4);
+  border-color: rgba(229, 46, 113, 0.6);
+}
+
+.pulse-anim {
+  animation: pulsingBar 2s infinite;
+}
+
+@keyframes pulsingBar {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; filter: brightness(1.2); }
+  100% { opacity: 0.8; }
 }
