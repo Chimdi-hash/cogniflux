@@ -25,6 +25,7 @@ const ABI = parseAbi([
 function App() {
   const [contractAddress, setContractAddress] = useState('0xEA0cD7116991407Cfb62DaB25fA4C9bC29295330');
   const [walletAddress, setWalletAddress] = useState('');
+  const [walletBalance, setWalletBalance] = useState('0');
   const [isCorrectNetwork, setIsCorrectNetwork] = useState(true);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +75,15 @@ function App() {
         functionName: 'get_state' 
       });
       setProtocolState(JSON.parse(stateStr));
+      
+      if (walletAddress && window.ethereum) {
+        const hexBalance = await window.ethereum.request({ 
+          method: 'eth_getBalance', 
+          params: [walletAddress, 'latest'] 
+        });
+        const balanceInGEN = (parseInt(hexBalance, 16) / 10**18).toFixed(2);
+        setWalletBalance(balanceInGEN);
+      }
     } catch (err) {
       console.error("Failed to fetch state:", err);
     }
@@ -86,8 +96,15 @@ function App() {
   const handleAccountsChanged = (accounts) => {
     if (accounts.length > 0) {
       setWalletAddress(accounts[0]);
+      window.ethereum.request({ 
+        method: 'eth_getBalance', 
+        params: [accounts[0], 'latest'] 
+      }).then(hexBalance => {
+        setWalletBalance((parseInt(hexBalance, 16) / 10**18).toFixed(2));
+      }).catch(console.error);
     } else {
       setWalletAddress('');
+      setWalletBalance('0');
     }
   };
 
@@ -214,6 +231,9 @@ function App() {
           ) : (
             <div className="wallet-badge" style={{ gap: '15px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '0.85rem' }}>
+                  {walletBalance} GEN
+                </span>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', display: 'inline-block' }}></span>
                 {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
               </span>
