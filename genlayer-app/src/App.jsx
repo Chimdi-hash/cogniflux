@@ -349,8 +349,8 @@ function App() {
         </div>
 
         <div className="markets-container">
-          <div className="section-title" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div><PlayCircle color="#6366f1" size={28} /> Active Markets</div>
+          <div className="section-title-container">
+            <div className="section-title"><PlayCircle color="#6366f1" size={28} /> Active Markets</div>
             <div className="tab-controls" style={{ display: 'flex', gap: '10px' }}>
               {['ALL', 'OPEN', 'RESOLVED'].map(tab => (
                 <button 
@@ -517,7 +517,7 @@ function App() {
                 <button onClick={() => setShowDashboard(false)} style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', fontSize: '1.5rem' }}>&times;</button>
               </div>
               
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '25px' }}>
+              <div className="dashboard-metrics">
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '16px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.05)' }}>
                   <div style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '8px' }}><Wallet size={16} style={{ display: 'inline', verticalAlign: 'middle', marginRight: '5px' }}/>Wagered</div>
                   <div style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'white' }}>{totalWagered} GEN</div>

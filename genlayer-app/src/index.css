@@ -255,12 +255,25 @@ textarea.input-field {
   gap: 25px;
 }
 
+.section-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .section-title {
   font-size: 1.8rem;
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 5px;
+}
+
+.dashboard-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 25px;
 }
 
 .market-card {
