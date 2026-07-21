@@ -535,8 +535,22 @@ textarea.input-field {
 }
 @media (max-width: 768px) {
   .navbar {
-    padding: 0 15px;
-    height: 70px;
+    padding: 10px 15px;
+    height: auto;
+    min-height: 70px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .nav-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .wallet-badge {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 10px;
+    font-size: 0.8rem;
+    gap: 5px;
   }
   .brand-title {
     font-size: 1.1rem;
@@ -554,14 +568,8 @@ textarea.input-field {
   }
   .nav-brand {
     gap: 8px;
-  }
-  .nav-controls {
-    gap: 8px;
-  }
-  .wallet-badge {
-    padding: 6px 10px;
-    font-size: 0.75rem;
-    gap: 5px;
+    width: 100%;
+    justify-content: center;
   }
   .btn-mint {
     padding: 6px 10px;
